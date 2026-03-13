@@ -1,753 +1,536 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>账号管理系统</title>
-<style>
-  :root {
-    --primary: #1677ff;
-    --primary-light: #e6f4ff;
-    --primary-hover: #0958d9;
-    --success: #52c41a;
-    --warning: #faad14;
-    --danger: #ff4d4f;
-    --border: #e8e8e8;
-    --text: #1a1a1a;
-    --text-secondary: #666;
-    --text-muted: #999;
-    --bg: #f5f6fa;
-    --white: #ffffff;
-    --sidebar-width: 220px;
-    --header-height: 56px;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
-
-  .page { display: none; }
-  .page.active { display: flex; min-height: 100vh; }
-
-  /* Layout */
-  .sidebar {
-    width: var(--sidebar-width);
-    background: #001529;
-    min-height: 100vh;
-    position: fixed;
-    top: 0; left: 0;
-    display: flex; flex-direction: column;
-    z-index: 100;
-  }
-  .sidebar-logo {
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .sidebar-logo h2 { color: #fff; font-size: 16px; font-weight: 600; }
-  .sidebar-logo span { color: rgba(255,255,255,0.5); font-size: 12px; }
-  .sidebar-menu { padding: 8px 0; flex: 1; }
-  .menu-group { margin-bottom: 4px; }
-  .menu-group-title { padding: 12px 20px 4px; color: rgba(255,255,255,0.4); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .menu-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 20px; color: rgba(255,255,255,0.65);
-    cursor: pointer; transition: all 0.2s;
-    border-left: 3px solid transparent;
-  }
-  .menu-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
-  .menu-item.active { color: #fff; background: var(--primary); border-left-color: transparent; }
-  .menu-item svg { flex-shrink: 0; }
-
-  .main-wrap { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-  .header {
-    height: var(--header-height);
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 24px;
-    position: sticky; top: 0; z-index: 50;
-  }
-  .breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 14px; }
-  .breadcrumb span.current { color: var(--text); font-weight: 500; }
-  .breadcrumb-sep { color: var(--border); }
-  .header-right { display: flex; align-items: center; gap: 16px; }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
-
-  .content { padding: 24px; flex: 1; }
-
-  /* Cards */
-  .card { background: var(--white); border-radius: 8px; border: 1px solid var(--border); }
-  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .card-title { font-size: 15px; font-weight: 600; }
-  .card-body { padding: 20px; }
-
-  /* Toolbar */
-  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .search-box {
-    display: flex; align-items: center; gap: 8px;
-    border: 1px solid var(--border); border-radius: 6px;
-    padding: 7px 12px; background: var(--white); width: 240px;
-    transition: border-color 0.2s;
-  }
-  .search-box:focus-within { border-color: var(--primary); }
-  .search-box input { border: none; outline: none; font-size: 14px; flex: 1; }
-  .search-box svg { color: var(--text-muted); }
-
-  .filter-select {
-    border: 1px solid var(--border); border-radius: 6px;
-    padding: 7px 12px; background: var(--white);
-    font-size: 14px; color: var(--text); cursor: pointer;
-    appearance: none; padding-right: 28px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 10px center;
-  }
-  .filter-select:focus { outline: none; border-color: var(--primary); }
-
-  .ml-auto { margin-left: auto; }
-
-  /* Buttons */
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; border: none; font-weight: 500; transition: all 0.2s; }
-  .btn-primary { background: var(--primary); color: #fff; }
-  .btn-primary:hover { background: var(--primary-hover); }
-  .btn-default { background: var(--white); color: var(--text); border: 1px solid var(--border); }
-  .btn-default:hover { border-color: var(--primary); color: var(--primary); }
-  .btn-sm { padding: 4px 10px; font-size: 13px; }
-  .btn-link { background: none; border: none; color: var(--primary); padding: 4px 8px; cursor: pointer; font-size: 13px; }
-  .btn-link:hover { color: var(--primary-hover); }
-  .btn-danger-link { background: none; border: none; color: var(--danger); padding: 4px 8px; cursor: pointer; font-size: 13px; }
-
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; }
-  th { padding: 12px 16px; text-align: left; color: var(--text-secondary); font-weight: 500; font-size: 13px; background: #fafafa; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  td { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #fafafa; }
-
-  /* Badges */
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 100px; font-size: 12px; font-weight: 500; white-space: nowrap; }
-  .badge-success { background: #f6ffed; color: #389e0d; }
-  .badge-warning { background: #fffbe6; color: #d46b08; }
-  .badge-default { background: #f5f5f5; color: #666; }
-  .badge-processing { background: var(--primary-light); color: var(--primary); }
-  .badge-dot::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-  /* Progress bar */
-  .progress-bar { display: flex; align-items: center; gap: 8px; }
-  .progress-track { flex: 1; height: 6px; background: #f0f0f0; border-radius: 3px; min-width: 80px; }
-  .progress-fill { height: 100%; border-radius: 3px; background: var(--primary); }
-  .progress-text { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
-
-  /* Channel name */
-  .channel-name { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-  .channel-avatar { width: 32px; height: 32px; border-radius: 6px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-  .channel-name-text { color: var(--primary); font-weight: 500; }
-  .channel-name-text:hover { text-decoration: underline; }
-
-  /* Stats row */
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-  .stat-card { background: var(--white); border-radius: 8px; border: 1px solid var(--border); padding: 16px 20px; }
-  .stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-  .stat-value { font-size: 28px; font-weight: 700; color: var(--text); }
-  .stat-value.primary { color: var(--primary); }
-  .stat-value.success { color: var(--success); }
-  .stat-value.warning { color: var(--warning); }
-
-  /* Detail page */
-  .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
-  .section { margin-bottom: 20px; }
-  .section-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .section-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--primary); border-radius: 2px; }
-
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .info-item { display: flex; flex-direction: column; gap: 4px; }
-  .info-label { font-size: 12px; color: var(--text-muted); }
-  .info-value { font-size: 14px; color: var(--text); }
-
-  /* Credential field */
-  .cred-list { display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .cred-item { background: var(--white); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
-  .cred-item:not(:last-child) { border-bottom: 1px solid #f5f5f5; }
-  .cred-item-left { flex: 1; min-width: 0; }
-  .cred-item-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
-  .cred-item-meta { font-size: 12px; color: var(--text-muted); }
-  .cred-item-value { display: flex; align-items: center; gap: 8px; min-width: 200px; }
-  .cred-mask { font-size: 16px; letter-spacing: 2px; color: var(--text-muted); }
-  .cred-plain { font-size: 13px; color: var(--text); font-family: monospace; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cred-empty { font-size: 13px; color: var(--danger); }
-  .tag-required { display: inline-block; padding: 1px 6px; font-size: 11px; background: #fff1f0; color: var(--danger); border-radius: 3px; }
-  .tag-optional { display: inline-block; padding: 1px 6px; font-size: 11px; background: #f5f5f5; color: var(--text-muted); border-radius: 3px; }
-  .tag-sensitive { display: inline-block; padding: 1px 6px; font-size: 11px; background: #fff7e6; color: #d46b08; border-radius: 3px; }
-
-  /* Back button */
-  .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 14px; cursor: pointer; margin-bottom: 16px; padding: 6px 0; }
-  .back-btn:hover { color: var(--primary); }
-
-  /* Timeline */
-  .timeline { display: flex; flex-direction: column; gap: 0; }
-  .timeline-item { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
-  .timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 24px; bottom: 0; width: 1px; background: var(--border); }
-  .timeline-dot { width: 24px; height: 24px; border-radius: 50%; background: var(--primary-light); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .timeline-dot svg { color: var(--primary); }
-  .timeline-content { flex: 1; padding-top: 2px; }
-  .timeline-title { font-size: 13px; color: var(--text); margin-bottom: 2px; }
-  .timeline-time { font-size: 12px; color: var(--text-muted); }
-
-  /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; }
-  .modal-overlay.open { display: flex; }
-  .modal { background: var(--white); border-radius: 10px; padding: 24px; width: 440px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
-  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-  .modal-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
-  .form-item { margin-bottom: 16px; }
-  .form-label { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block; }
-  .form-input { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 14px; outline: none; transition: border-color 0.2s; }
-  .form-input:focus { border-color: var(--primary); }
-  .form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-  .page-tabs { display: none; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>账号管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body>
+<body style="margin:0;" class="bg-gray-50 text-gray-800">
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState } = React;
 
-<!-- ========== PAGE 1: 渠道列表 ========== -->
-<div class="page active" id="page-list">
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <h2>🔐 账号管理系统</h2>
-      <span>财务后台</span>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【替换区 1】菜单
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const MENU = [
+  {
+    group: '基础配置',
+    items: [
+      { key: 'channels', label: '渠道管理', icon: '◈', active: true },
+      { key: 'fields',   label: '字段配置', icon: '≡' },
+    ]
+  },
+  {
+    group: '凭证管理',
+    items: [
+      { key: 'credentials', label: '凭证录入', icon: '🔑' },
+      { key: 'audit',       label: '操作日志', icon: '📋' },
+    ]
+  },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【替换区 2】表格列
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const COLUMNS = [
+  { key: 'name',          label: '渠道名称', cls: 'font-medium text-gray-900' },
+  { key: 'type',          label: '接入类型', render: v => <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">{v}</span> },
+  { key: 'intStatus',     label: '接入状态', render: v => <StatusBadge status={v}/> },
+  { key: 'onlineStatus',  label: '上线状态', render: v => <OnlineBadge status={v}/> },
+  { key: 'completeness',  label: '凭证完整度', render: (v, row) => <ProgressBar filled={row.filled} total={row.total}/> },
+  { key: 'expiredAt',     label: '截止日期',  render: (v, row) => {
+    const expiring = v !== '-' && new Date(v) < new Date(Date.now() + 30*86400000);
+    return <span className={`text-xs ${expiring ? 'text-red-500 font-medium' : 'text-gray-400'}`}>{expiring ? '⚠ ' : ''}{v}</span>;
+  }},
+  { key: 'updatedAt',     label: '最后更新',  render: (v, row) => <span className="text-xs text-gray-400">{v}<br/>{row.operator}</span> },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【替换区 3】筛选项
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const FILTERS = [
+  { key: 'type',         label: '接入类型', options: [['','全部'],['API','API'],['SFTP','SFTP'],['other','其他']] },
+  { key: 'intStatus',    label: '接入状态', options: [['','全部'],['connected','已接入'],['pending','接入中'],['unknown','未知']] },
+  { key: 'onlineStatus', label: '上线状态', options: [['','全部'],['online','已上线'],['offline','已下线'],['unknown','未知']] },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【替换区 4】Mock 数据
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const INIT_DATA = [
+  { id:1, name:'Lapay',         type:'API',  intStatus:'connected', onlineStatus:'online',  filled:6, total:6, expiredAt:'2027-06-30', updatedAt:'2026-02-01', operator:'张三' },
+  { id:2, name:'PayPal',        type:'API',  intStatus:'connected', onlineStatus:'online',  filled:3, total:4, expiredAt:'2027-03-15', updatedAt:'2026-01-20', operator:'李四' },
+  { id:3, name:'Stripe',        type:'API',  intStatus:'pending',   onlineStatus:'online',  filled:2, total:6, expiredAt:'2026-12-31', updatedAt:'2026-01-15', operator:'张三' },
+  { id:4, name:'SWIFT 银行转账', type:'SFTP', intStatus:'connected', onlineStatus:'offline', filled:5, total:5, expiredAt:'2025-12-10', updatedAt:'2025-12-10', operator:'王五' },
+  { id:5, name:'Alipay HK',     type:'API',  intStatus:'unknown',   onlineStatus:'online',  filled:1, total:4, expiredAt:'2026-08-01', updatedAt:'2026-01-08', operator:'李四' },
+  { id:6, name:'GrabPay',       type:'API',  intStatus:'pending',   onlineStatus:'unknown', filled:2, total:4, expiredAt:'2027-01-01', updatedAt:'2026-03-01', operator:'张三' },
+  { id:7, name:'Payermax',      type:'API',  intStatus:'connected', onlineStatus:'online',  filled:4, total:4, expiredAt:'2027-09-30', updatedAt:'2026-02-18', operator:'王五' },
+  { id:8, name:'Unipin',        type:'SFTP', intStatus:'pending',   onlineStatus:'unknown', filled:0, total:3, expiredAt:'-',         updatedAt:'2026-03-10', operator:'李四' },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【替换区 5】状态配置
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const INT_STATUS_MAP = {
+  connected: { label:'已接入', dot:'bg-green-500',       cls:'bg-green-50 text-green-700 border border-green-200' },
+  pending:   { label:'接入中', dot:'bg-blue-500 animate-pulse', cls:'bg-blue-50 text-blue-600 border border-blue-200' },
+  unknown:   { label:'未知',   dot:'bg-gray-400',         cls:'bg-gray-100 text-gray-500 border border-gray-200' },
+};
+const ONLINE_STATUS_MAP = {
+  online:  { label:'已上线', dot:'bg-green-500', cls:'bg-green-50 text-green-700 border border-green-200' },
+  offline: { label:'已下线', dot:'bg-gray-400',  cls:'bg-gray-100 text-gray-500 border border-gray-200' },
+  unknown: { label:'未知',   dot:'bg-gray-400',  cls:'bg-gray-100 text-gray-500 border border-gray-200' },
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【替换区 6】新增/编辑表单
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const FORM_FIELDS = [
+  { key:'name',         label:'渠道名称', type:'text' },
+  { key:'type',         label:'接入类型', type:'select', options:['API','SFTP','其他'] },
+  { key:'intStatus',    label:'接入状态', type:'select', options:[{v:'connected',l:'已接入'},{v:'pending',l:'接入中'},{v:'unknown',l:'未知'}] },
+  { key:'onlineStatus', label:'上线状态', type:'select', options:[{v:'online',l:'已上线'},{v:'offline',l:'已下线'},{v:'unknown',l:'未知'}] },
+  { key:'expiredAt',    label:'截止日期', type:'date' },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 凭证字段（详情页用，Lapay 示例）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const CRED_FIELDS = [
+  { key:'merchant_no',          label:'商户号',   sensitive:false, required:true,  filled:true,  value:'LPY-8823-CNY',             updatedAt:'2026-02-01', operator:'张三', version:2 },
+  { key:'merchant_private_key', label:'商户私钥', sensitive:true,  required:true,  filled:true,  value:'',                         updatedAt:'2026-02-01', operator:'张三', version:3 },
+  { key:'platform_public_key',  label:'平台公钥', sensitive:true,  required:true,  filled:true,  value:'',                         updatedAt:'2026-01-20', operator:'张三', version:1 },
+  { key:'endpoint',             label:'接口地址', sensitive:false, required:true,  filled:true,  value:'https://api.lapay.com/v2', updatedAt:'2026-01-15', operator:'李四', version:1 },
+  { key:'doc_username',         label:'文档账号', sensitive:false, required:false, filled:false, value:'', updatedAt:'-', operator:'-', version:0 },
+  { key:'doc_password',         label:'文档密码', sensitive:true,  required:false, filled:false, value:'', updatedAt:'-', operator:'-', version:0 },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 【固定区】以下代码保持不变
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const PAGE_SIZE = 6;
+
+function StatusBadge({ status }) {
+  const cfg = INT_STATUS_MAP[status] || INT_STATUS_MAP.unknown;
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}><span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}></span>{cfg.label}</span>;
+}
+function OnlineBadge({ status }) {
+  const cfg = ONLINE_STATUS_MAP[status] || ONLINE_STATUS_MAP.unknown;
+  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}><span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}></span>{cfg.label}</span>;
+}
+function ProgressBar({ filled, total }) {
+  const pct = total === 0 ? 0 : Math.round(filled / total * 100);
+  const color = pct === 100 ? 'bg-green-500' : pct >= 50 ? 'bg-blue-500' : 'bg-red-400';
+  const text  = pct === 100 ? 'text-green-600' : pct >= 50 ? 'text-blue-600' : 'text-red-500';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden" style={{minWidth:56}}>
+        <div className={`h-full rounded-full ${color}`} style={{width:`${pct}%`}}></div>
+      </div>
+      <span className={`text-xs font-medium ${text}`}>{filled}/{total}</span>
     </div>
-    <div class="sidebar-menu">
-      <div class="menu-group">
-        <div class="menu-group-title">渠道管理</div>
-        <div class="menu-item active" onclick="showPage('list')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          渠道列表
+  );
+}
+
+function Modal({ title, onClose, children, footer }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-2xl w-[480px] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <span className="font-semibold text-gray-800">{title}</span>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
-      </div>
-      <div class="menu-group">
-        <div class="menu-group-title">系统</div>
-        <div class="menu-item">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-          系统设置
-        </div>
+        <div className="px-5 py-4">{children}</div>
+        {footer && <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50">{footer}</div>}
       </div>
     </div>
-  </aside>
+  );
+}
 
-  <div class="main-wrap">
-    <header class="header">
-      <div class="breadcrumb">
-        <span>账号管理</span>
-        <span class="breadcrumb-sep">›</span>
-        <span class="current">渠道列表</span>
-      </div>
-      <div class="header-right">
-        <div class="avatar">吉</div>
-      </div>
-    </header>
+function Toast({ msg, type }) {
+  if (!msg) return null;
+  return <div className={`fixed top-4 left-1/2 -translate-x-1/2 ${type==='success'?'bg-green-600':'bg-gray-800'} text-white text-sm px-5 py-2.5 rounded-lg shadow-lg z-[9999]`}>{msg}</div>;
+}
 
-    <div class="content">
-      <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-label">总渠道数</div>
-          <div class="stat-value">17</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">已接入</div>
-          <div class="stat-value success">1</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">待接入</div>
-          <div class="stat-value warning">6</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">待摸排</div>
-          <div class="stat-value" style="color:var(--text-muted)">10</div>
-        </div>
+function Sidebar({ activeKey, onSelect }) {
+  return (
+    <aside className="w-52 flex-shrink-0 flex flex-col h-screen bg-[#18181b] text-zinc-400">
+      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-zinc-800">
+        <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center text-white text-sm">🔐</div>
+        <span className="text-white text-sm font-semibold">账号管理系统</span>
       </div>
+      <nav className="flex-1 py-3 overflow-y-auto">
+        {MENU.map(({ group, items }) => (
+          <div key={group} className="mb-2">
+            <div className="px-4 py-1.5 text-xs font-medium text-zinc-600 uppercase tracking-wider">{group}</div>
+            {items.map(item => {
+              const isActive = item.key === activeKey;
+              return (
+                <button key={item.key} onClick={() => onSelect(item.key)}
+                  className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${isActive ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
+                  <span className="w-5 text-center">{item.icon}</span>{item.label}
+                  {isActive && <span className="ml-auto w-1 h-4 bg-blue-500 rounded-full"></span>}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+      <div className="px-4 py-3 border-t border-zinc-800 flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">张</div>
+        <div><div className="text-zinc-200 text-xs font-medium">张三</div><div className="text-zinc-500 text-xs">财务运维</div></div>
+      </div>
+    </aside>
+  );
+}
 
-      <!-- Table card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">海外支付渠道</div>
-          <button class="btn btn-primary" onclick="alert('新增渠道')">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            新增渠道
+// ── 渠道列表页 ────────────────────────────────────────
+function ChannelListPage({ onViewDetail, showToast }) {
+  const [search, setSearch]   = useState('');
+  const [filters, setFilters] = useState({});
+  const [page, setPage]       = useState(1);
+  const [selected, setSelected] = useState([]);
+  const [modal, setModal]     = useState(null);
+  const [editRow, setEditRow] = useState(null);
+  const [data, setData]       = useState(INIT_DATA);
+
+  const filtered = data.filter(r => {
+    if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
+    for (const [k, v] of Object.entries(filters)) { if (v && r[k] !== v) return false; }
+    return true;
+  });
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+  const toggleAll = () => setSelected(s => s.length===paginated.length ? [] : paginated.map(r=>r.id));
+  const toggleRow = id => setSelected(s => s.includes(id) ? s.filter(x=>x!==id) : [...s,id]);
+  const hasFilter = search || Object.values(filters).some(Boolean);
+
+  const confirmSave = () => {
+    if (modal==='add') { const id=Math.max(...data.map(r=>r.id))+1; setData(d=>[...d,{...editRow,id,filled:0,total:0,updatedAt:new Date().toISOString().slice(0,10),operator:'张三'}]); }
+    else setData(d=>d.map(r=>r.id===editRow.id?{...r,...editRow}:r));
+    setModal(null); showToast(modal==='add'?'✓ 渠道已新增':'✓ 修改已保存','success');
+  };
+
+  // 统计卡
+  const stats = [
+    { label:'渠道总数',  value:data.length,                                         unit:'个', color:'text-gray-900',   sub:'第一阶段海外支付' },
+    { label:'已接入',    value:data.filter(c=>c.intStatus==='connected').length,    unit:'个', color:'text-green-600',  sub:'↑2 较上月' },
+    { label:'凭证待补',  value:data.filter(c=>c.filled<c.total).length,            unit:'个', color:'text-yellow-600', sub:'有字段未填写' },
+    { label:'即将到期',  value:data.filter(c=>c.expiredAt!=='-'&&new Date(c.expiredAt)<new Date(Date.now()+30*86400000)).length, unit:'个', color:'text-red-500', sub:'30天内到期' },
+  ];
+
+  return (
+    <main className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
+        <h1 className="text-base font-semibold text-gray-900">渠道管理</h1>
+        <p className="text-xs text-gray-400 mt-0.5">管理海外支付渠道凭证</p>
+      </div>
+      <div className="flex-1 overflow-auto px-6 py-4">
+
+        {/* 统计卡 */}
+        <div className="grid grid-cols-4 gap-4 mb-4">
+          {stats.map(s => (
+            <div key={s.label} className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+              <div className="text-xs text-gray-500 mb-1">{s.label}</div>
+              <div className={`text-2xl font-bold ${s.color}`}>{s.value}<span className="text-sm font-normal text-gray-400 ml-1">{s.unit}</span></div>
+              <div className="text-xs text-gray-400 mt-0.5">{s.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* 筛选条 */}
+        <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-3 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 h-8 focus-within:border-blue-400 focus-within:bg-white transition-colors">
+            <span className="text-gray-400 text-sm">🔍</span>
+            <input className="bg-transparent text-sm outline-none w-36 placeholder:text-gray-400" placeholder="搜索渠道名称..."
+              value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
+          </div>
+          {FILTERS.map(f => (
+            <div key={f.key} className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">{f.label}</span>
+              <select className="h-8 border border-gray-200 rounded-md px-2 text-sm bg-white focus:outline-none focus:border-blue-400"
+                value={filters[f.key]||''} onChange={e=>{setFilters(fs=>({...fs,[f.key]:e.target.value}));setPage(1);}}>
+                {f.options.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+          ))}
+          {hasFilter && <button onClick={()=>{setSearch('');setFilters({});setPage(1);}} className="text-xs text-blue-500 hover:text-blue-700">重置</button>}
+          <span className="ml-auto text-xs text-gray-400">共 {total} 条</span>
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={()=>{setEditRow({name:'',type:'API',intStatus:'pending',onlineStatus:'unknown',expiredAt:''});setModal('add');}}
+            className="flex items-center gap-1.5 px-3 h-8 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition-colors">
+            ＋ 新增渠道
           </button>
+          <button onClick={()=>showToast('已导出 Excel')} className="px-3 h-8 bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-sm text-gray-600 rounded-md transition-colors">↓ 导出</button>
+          {selected.length>0 && (
+            <button onClick={()=>{setData(d=>d.filter(r=>!selected.includes(r.id)));setSelected([]);showToast(`✓ 已删除 ${selected.length} 条`,'success');}}
+              className="px-3 h-8 bg-white border border-red-200 hover:bg-red-50 text-red-500 text-sm rounded-md transition-colors">
+              🗑 删除所选 ({selected.length})
+            </button>
+          )}
         </div>
-        <div class="card-body" style="padding:0">
-          <div class="toolbar" style="padding:16px 20px 0">
-            <div class="search-box">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <input type="text" placeholder="搜索渠道名称…">
-            </div>
-            <select class="filter-select">
-              <option>全部类型</option>
-              <option>API</option>
-              <option>SFTP</option>
-              <option>其他</option>
-            </select>
-            <select class="filter-select">
-              <option>全部接入状态</option>
-              <option>已接入</option>
-              <option>未接入</option>
-            </select>
-            <select class="filter-select">
-              <option>全部上线状态</option>
-              <option>已上线</option>
-              <option>未上线</option>
-            </select>
+
+        {/* 表格 */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded" checked={selected.length===paginated.length&&paginated.length>0} onChange={toggleAll}/></th>
+                {COLUMNS.map(c=><th key={c.key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">{c.label}</th>)}
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {paginated.length===0 ? (
+                <tr><td colSpan={COLUMNS.length+2} className="text-center py-12 text-gray-400 text-sm">暂无数据</td></tr>
+              ) : paginated.map(row=>(
+                <tr key={row.id} className={`hover:bg-gray-50 transition-colors cursor-pointer ${selected.includes(row.id)?'bg-blue-50':''}`} onClick={()=>onViewDetail(row)}>
+                  <td className="px-4 py-3" onClick={e=>e.stopPropagation()}><input type="checkbox" className="rounded" checked={selected.includes(row.id)} onChange={()=>toggleRow(row.id)}/></td>
+                  {COLUMNS.map(c=>(
+                    <td key={c.key} className={`px-4 py-3 ${c.cls||''}`}>
+                      {c.render ? c.render(row[c.key], row) : row[c.key]}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={()=>onViewDetail(row)} className="px-2.5 py-1 text-xs text-blue-500 hover:bg-blue-50 rounded">查看凭证</button>
+                      <span className="text-gray-200">|</span>
+                      <button onClick={()=>{setEditRow({...row});setModal('edit');}} className="px-2.5 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">编辑</button>
+                      <span className="text-gray-200">|</span>
+                      <button onClick={()=>{setEditRow(row);setModal('delete');}} className="px-2.5 py-1 text-xs text-red-400 hover:bg-red-50 rounded">删除</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 分页 */}
+        <div className="flex items-center justify-between mt-3 px-1">
+          <span className="text-xs text-gray-400">第 {Math.min((page-1)*PAGE_SIZE+1,total)}–{Math.min(page*PAGE_SIZE,total)} 条，共 {total} 条</span>
+          <div className="flex items-center gap-1">
+            {[{l:'«',a:()=>setPage(1),d:page===1},{l:'‹',a:()=>setPage(p=>p-1),d:page===1}].map((b,i)=>(
+              <button key={i} onClick={b.a} disabled={b.d} className="w-8 h-8 flex items-center justify-center text-xs rounded border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-500 disabled:opacity-30 disabled:cursor-not-allowed">{b.l}</button>
+            ))}
+            {Array.from({length:totalPages},(_,i)=>i+1)
+              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
+              .reduce((acc,p,i,arr)=>{if(i>0&&p-arr[i-1]>1)acc.push('…');acc.push(p);return acc;},[])
+              .map((p,i)=>p==='…'
+                ?<span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400">…</span>
+                :<button key={p} onClick={()=>setPage(p)} className={`w-8 h-8 flex items-center justify-center text-xs rounded border transition-colors ${p===page?'bg-blue-500 text-white border-blue-500':'border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-500'}`}>{p}</button>
+              )}
+            {[{l:'›',a:()=>setPage(p=>p+1),d:page===totalPages},{l:'»',a:()=>setPage(totalPages),d:page===totalPages}].map((b,i)=>(
+              <button key={i} onClick={b.a} disabled={b.d} className="w-8 h-8 flex items-center justify-center text-xs rounded border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-500 disabled:opacity-30 disabled:cursor-not-allowed">{b.l}</button>
+            ))}
           </div>
+        </div>
+      </div>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>渠道名称</th>
-                  <th>接入类型</th>
-                  <th>接入状态</th>
-                  <th>上线状态</th>
-                  <th>凭证完整度</th>
-                  <th>最后更新</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <div class="channel-name" onclick="showPage('detail')">
-                      <div class="channel-avatar">P</div>
-                      <span class="channel-name-text">Payermax</span>
-                    </div>
-                  </td>
-                  <td><span class="badge badge-processing">API</span></td>
-                  <td><span class="badge badge-success"><span class="badge-dot"></span>已接入</span></td>
-                  <td><span class="badge badge-success"><span class="badge-dot"></span>已上线</span></td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
-                      <span class="progress-text">4/4</span>
-                    </div>
-                  </td>
-                  <td style="color:var(--text-secondary)">2026-02-15</td>
-                  <td><button class="btn-link" onclick="showPage('detail')">查看详情</button></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="channel-name" onclick="showPage('detail')">
-                      <div class="channel-avatar" style="background:#fff7e6;color:#d46b08">L</div>
-                      <span class="channel-name-text">Lapay</span>
-                    </div>
-                  </td>
-                  <td><span class="badge badge-processing">API</span></td>
-                  <td><span class="badge badge-warning"><span class="badge-dot"></span>未接入</span></td>
-                  <td><span class="badge badge-warning"><span class="badge-dot"></span>未上线</span></td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-track"><div class="progress-fill" style="width:50%"></div></div>
-                      <span class="progress-text">3/6</span>
-                    </div>
-                  </td>
-                  <td style="color:var(--text-secondary)">2026-03-01</td>
-                  <td><button class="btn-link" onclick="showPage('detail')">查看详情</button></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="channel-name" onclick="showPage('detail')">
-                      <div class="channel-avatar" style="background:#f9f0ff;color:#722ed1">U</div>
-                      <span class="channel-name-text">Unipin</span>
-                    </div>
-                  </td>
-                  <td><span class="badge badge-processing">API</span></td>
-                  <td><span class="badge badge-warning"><span class="badge-dot"></span>未接入</span></td>
-                  <td><span class="badge badge-warning"><span class="badge-dot"></span>未上线</span></td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
-                      <span class="progress-text">0/5</span>
-                    </div>
-                  </td>
-                  <td style="color:var(--text-muted)">—</td>
-                  <td><button class="btn-link" onclick="showPage('detail')">查看详情</button></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="channel-name" onclick="showPage('detail')">
-                      <div class="channel-avatar" style="background:#e6fffb;color:#08979c">T</div>
-                      <span class="channel-name-text">Tikipay</span>
-                    </div>
-                  </td>
-                  <td><span class="badge badge-default">SFTP</span></td>
-                  <td><span class="badge badge-warning"><span class="badge-dot"></span>未接入</span></td>
-                  <td><span class="badge badge-warning"><span class="badge-dot"></span>未上线</span></td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-track"><div class="progress-fill" style="width:33%"></div></div>
-                      <span class="progress-text">1/3</span>
-                    </div>
-                  </td>
-                  <td style="color:var(--text-secondary)">2026-02-28</td>
-                  <td><button class="btn-link" onclick="showPage('detail')">查看详情</button></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="channel-name">
-                      <div class="channel-avatar" style="background:#f5f5f5;color:#999">O</div>
-                      <span style="color:var(--text-muted)">Onerway</span>
-                    </div>
-                  </td>
-                  <td><span class="badge badge-default" style="color:#999">待摸排</span></td>
-                  <td><span class="badge badge-default">—</span></td>
-                  <td><span class="badge badge-default">—</span></td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
-                      <span class="progress-text">0/0</span>
-                    </div>
-                  </td>
-                  <td style="color:var(--text-muted)">—</td>
-                  <td><button class="btn-link">查看详情</button></td>
-                </tr>
-              </tbody>
-            </table>
+      {/* 新增/编辑 */}
+      {(modal==='add'||modal==='edit') && (
+        <Modal title={modal==='add'?'新增渠道':'编辑渠道'} onClose={()=>setModal(null)}
+          footer={<>
+            <button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
+            <button onClick={confirmSave} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认</button>
+          </>}>
+          <div className="space-y-3">
+            {FORM_FIELDS.map(f=>(
+              <div key={f.key} className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">{f.label}</label>
+                {f.type==='select'
+                  ? <select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white" value={editRow?.[f.key]||''} onChange={e=>setEditRow(r=>({...r,[f.key]:e.target.value}))}>
+                      <option value="">请选择</option>
+                      {f.options.map(o=>typeof o==='string'?<option key={o}>{o}</option>:<option key={o.v} value={o.v}>{o.l}</option>)}
+                    </select>
+                  : <input type={f.type} className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400" value={editRow?.[f.key]||''} onChange={e=>setEditRow(r=>({...r,[f.key]:e.target.value}))}/>
+                }
+              </div>
+            ))}
           </div>
-          <div style="padding:14px 20px;color:var(--text-muted);font-size:13px;border-top:1px solid #f0f0f0">共 17 个渠道，显示前 5 条</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+        </Modal>
+      )}
+      {modal==='delete' && (
+        <Modal title="确认删除" onClose={()=>setModal(null)}
+          footer={<>
+            <button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
+            <button onClick={()=>{setData(d=>d.filter(r=>r.id!==editRow.id));setModal(null);showToast('✓ 已删除','success');}} className="px-4 h-8 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md">确认删除</button>
+          </>}>
+          <p className="text-sm text-gray-600">确定删除 <strong>「{editRow?.name}」</strong> 吗？</p>
+        </Modal>
+      )}
+    </main>
+  );
+}
 
+// ── 渠道凭证详情页 ────────────────────────────────────
+function CredDetailPage({ channel, onBack, showToast }) {
+  const [fields, setFields] = useState(CRED_FIELDS);
+  const [credModal, setCredModal] = useState(null);
+  const [inputVal, setInputVal] = useState('');
+  const filled = fields.filter(f=>f.filled).length;
+  const pct = Math.round(filled/fields.length*100);
 
-<!-- ========== PAGE 2: 渠道凭证详情 ========== -->
-<div class="page" id="page-detail">
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <h2>🔐 账号管理系统</h2>
-      <span>财务后台</span>
-    </div>
-    <div class="sidebar-menu">
-      <div class="menu-group">
-        <div class="menu-group-title">渠道管理</div>
-        <div class="menu-item active" onclick="showPage('list')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          渠道列表
-        </div>
-      </div>
-      <div class="menu-group">
-        <div class="menu-group-title">系统</div>
-        <div class="menu-item">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-          系统设置
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <div class="main-wrap">
-    <header class="header">
-      <div class="breadcrumb">
-        <span style="cursor:pointer;color:var(--text-secondary)" onclick="showPage('list')">账号管理</span>
-        <span class="breadcrumb-sep">›</span>
-        <span style="cursor:pointer;color:var(--text-secondary)" onclick="showPage('list')">渠道列表</span>
-        <span class="breadcrumb-sep">›</span>
-        <span class="current">Lapay</span>
-      </div>
-      <div class="header-right">
-        <div class="avatar">吉</div>
-      </div>
-    </header>
-
-    <div class="content">
-      <div class="back-btn" onclick="showPage('list')">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        返回渠道列表
-      </div>
-
-      <div class="detail-layout">
-        <!-- Left Column -->
+  return (
+    <main className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 bg-white border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
+        <button onClick={onBack} className="text-gray-400 hover:text-blue-500 text-lg transition-colors leading-none">←</button>
         <div>
-          <!-- Basic Info -->
-          <div class="card section">
-            <div class="card-header">
-              <div style="display:flex;align-items:center;gap:12px">
-                <div class="channel-avatar" style="width:40px;height:40px;font-size:16px;background:#fff7e6;color:#d46b08">L</div>
-                <div>
-                  <div style="font-size:16px;font-weight:600">Lapay</div>
-                  <div style="font-size:12px;color:var(--text-muted);margin-top:2px">海外支付渠道</div>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <span class="badge badge-warning"><span class="badge-dot"></span>未接入</span>
-                <span class="badge badge-warning"><span class="badge-dot"></span>未上线</span>
-                <button class="btn btn-default btn-sm">编辑信息</button>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="info-label">接入类型</span>
-                  <span class="info-value"><span class="badge badge-processing">API</span></span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">凭证截止日期</span>
-                  <span class="info-value">2025-06-30</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">文档地址</span>
-                  <span class="info-value" style="color:var(--primary)">https://lapay-api.apifox.cn</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">最后更新</span>
-                  <span class="info-value" style="color:var(--text-secondary)">2026-03-01 by 张三</span>
-                </div>
-                <div class="info-item" style="grid-column:span 2">
-                  <span class="info-label">备注</span>
-                  <span class="info-value" style="color:var(--text-secondary)">接入密码：ltpksIJg（文档访问用）</span>
-                </div>
-              </div>
+          <h1 className="text-base font-semibold text-gray-900">{channel.name} · 渠道凭证详情</h1>
+          <p className="text-xs text-gray-400 mt-0.5">渠道管理 / 凭证详情</p>
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
+
+        {/* 基础信息 */}
+        <div className="bg-white border border-gray-200 rounded-lg">
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2"><span className="w-0.5 h-4 bg-blue-500 rounded-full block"></span><span className="font-semibold text-sm">基础信息</span></div>
+            <div className="flex gap-2">
+              <button className="px-3 h-7 text-xs border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
+              <button onClick={()=>showToast('✓ 已保存','success')} className="px-3 h-7 text-xs bg-blue-500 text-white rounded-md">保存修改</button>
             </div>
           </div>
-
-          <!-- Credential Fields -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">凭证字段</div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:13px;color:var(--text-muted)">已填 3 / 共 6 项</span>
-                <button class="btn btn-default btn-sm" onclick="alert('管理字段配置')">管理字段</button>
+          <div className="px-5 py-4 grid grid-cols-3 gap-4 text-sm">
+            {[
+              {label:'渠道名称',defaultValue:channel.name,type:'text'},
+              {label:'接入类型',defaultValue:channel.type,type:'text'},
+            ].map(f=>(
+              <div key={f.label} className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">{f.label}</label>
+                <input type={f.type} defaultValue={f.defaultValue} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"/>
               </div>
+            ))}
+            <div className="flex flex-col gap-1"><label className="text-xs text-gray-500">接入状态</label>
+              <select defaultValue={channel.intStatus} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                <option value="connected">已接入</option><option value="pending">接入中</option><option value="unknown">未知</option>
+              </select>
             </div>
-            <div class="card-body" style="padding:0">
-              <div class="cred-list">
-
-                <!-- 已填写-非敏感 -->
-                <div class="cred-item">
-                  <div class="cred-item-left">
-                    <div class="cred-item-label">
-                      商户号
-                      <span class="tag-required">必填</span>
-                    </div>
-                    <div class="cred-item-meta">最后更新：2026-03-01 · 张三</div>
-                  </div>
-                  <div class="cred-item-value">
-                    <span class="cred-plain">LP00017</span>
-                  </div>
-                  <button class="btn btn-default btn-sm" onclick="openModal('商户号', false)">重新填写</button>
-                </div>
-
-                <!-- 已填写-敏感 -->
-                <div class="cred-item">
-                  <div class="cred-item-left">
-                    <div class="cred-item-label">
-                      商户私钥
-                      <span class="tag-required">必填</span>
-                      <span class="tag-sensitive">🔒 加密</span>
-                    </div>
-                    <div class="cred-item-meta">最后更新：2026-03-01 · 张三</div>
-                  </div>
-                  <div class="cred-item-value">
-                    <span class="cred-mask">••••••••••••</span>
-                  </div>
-                  <button class="btn btn-default btn-sm" onclick="openModal('商户私钥', true)">重新填写</button>
-                </div>
-
-                <!-- 已填写-敏感 -->
-                <div class="cred-item">
-                  <div class="cred-item-left">
-                    <div class="cred-item-label">
-                      平台公钥
-                      <span class="tag-required">必填</span>
-                      <span class="tag-sensitive">🔒 加密</span>
-                    </div>
-                    <div class="cred-item-meta">最后更新：2026-03-01 · 张三</div>
-                  </div>
-                  <div class="cred-item-value">
-                    <span class="cred-mask">••••••••••••</span>
-                  </div>
-                  <button class="btn btn-default btn-sm" onclick="openModal('平台公钥', true)">重新填写</button>
-                </div>
-
-                <!-- 已填写-非敏感 -->
-                <div class="cred-item">
-                  <div class="cred-item-left">
-                    <div class="cred-item-label">
-                      接口地址
-                      <span class="tag-required">必填</span>
-                    </div>
-                    <div class="cred-item-meta">最后更新：2026-02-20 · 李四</div>
-                  </div>
-                  <div class="cred-item-value">
-                    <span class="cred-plain">http://110.42.152.219:8083</span>
-                  </div>
-                  <button class="btn btn-default btn-sm" onclick="openModal('接口地址', false)">重新填写</button>
-                </div>
-
-                <!-- 未填写-选填 -->
-                <div class="cred-item" style="background:#fffbe6">
-                  <div class="cred-item-left">
-                    <div class="cred-item-label">
-                      文档账号
-                      <span class="tag-optional">选填</span>
-                    </div>
-                    <div class="cred-item-meta">尚未填写</div>
-                  </div>
-                  <div class="cred-item-value">
-                    <span class="cred-empty">未填写</span>
-                  </div>
-                  <button class="btn btn-primary btn-sm" onclick="openModal('文档账号', false)">立即填写</button>
-                </div>
-
-                <!-- 未填写-选填-敏感 -->
-                <div class="cred-item" style="background:#fffbe6">
-                  <div class="cred-item-left">
-                    <div class="cred-item-label">
-                      文档密码
-                      <span class="tag-optional">选填</span>
-                      <span class="tag-sensitive">🔒 加密</span>
-                    </div>
-                    <div class="cred-item-meta">尚未填写</div>
-                  </div>
-                  <div class="cred-item-value">
-                    <span class="cred-empty">未填写</span>
-                  </div>
-                  <button class="btn btn-primary btn-sm" onclick="openModal('文档密码', true)">立即填写</button>
-                </div>
-
-              </div>
+            <div className="flex flex-col gap-1"><label className="text-xs text-gray-500">上线状态</label>
+              <select defaultValue={channel.onlineStatus} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                <option value="online">已上线</option><option value="offline">已下线</option><option value="unknown">未知</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1"><label className="text-xs text-gray-500">截止日期</label>
+              <input type="date" defaultValue={channel.expiredAt} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"/>
+            </div>
+            <div className="flex flex-col gap-1 col-span-2"><label className="text-xs text-gray-500">备注</label>
+              <input type="text" defaultValue="主要用于东南亚市场，支持 PHP/VND/THB" className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"/>
             </div>
           </div>
         </div>
 
-        <!-- Right Column: Operation Log -->
-        <div>
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">操作记录</div>
+        {/* 凭证字段 */}
+        <div className="bg-white border border-gray-200 rounded-lg">
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-0.5 h-4 bg-blue-500 rounded-full block"></span>
+              <span className="font-semibold text-sm">凭证字段</span>
+              <span className="text-xs text-gray-400">动态渲染</span>
             </div>
-            <div class="card-body">
-              <div class="timeline">
-                <div class="timeline-item">
-                  <div class="timeline-dot">
-                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                  </div>
-                  <div class="timeline-content">
-                    <div class="timeline-title"><strong>张三</strong> 填写了 <strong>平台公钥</strong></div>
-                    <div class="timeline-time">2026-03-01 14:32</div>
-                  </div>
+            <button onClick={()=>showToast('字段配置管理（管理员）')} className="px-3 h-7 text-xs border border-gray-200 rounded-md hover:border-blue-400 hover:text-blue-500 text-gray-600 transition-colors">⚙ 管理字段</button>
+          </div>
+          {/* 完整度 */}
+          <div className="px-5 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5">
+              <span className="text-xl font-bold text-green-600">{filled}</span><span className="text-xs text-gray-500">已填写</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-xl font-bold text-gray-400">{fields.length-filled}</span><span className="text-xs text-gray-500">未填写</span>
+              <span className="text-gray-300">|</span>
+              <div className="flex-1 h-2 bg-blue-100 rounded-full overflow-hidden max-w-[180px]">
+                <div className="h-full bg-blue-500 rounded-full" style={{width:`${pct}%`}}></div>
+              </div>
+              <span className="text-sm font-semibold text-blue-600">{filled}/{fields.length}</span>
+            </div>
+          </div>
+          {/* 字段列表 */}
+          <div className="divide-y divide-gray-100">
+            {fields.map(f=>(
+              <div key={f.key} className="flex items-start gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                <div className="w-8 flex-shrink-0 pt-0.5">{f.required?<span className="text-red-400 text-sm">*</span>:<span className="text-xs text-gray-300">选填</span>}</div>
+                <div className="w-28 flex-shrink-0 pt-0.5">
+                  <div className="text-sm text-gray-600">{f.label}</div>
+                  <div className="text-xs text-gray-400 font-mono mt-0.5">{f.key}</div>
                 </div>
-                <div class="timeline-item">
-                  <div class="timeline-dot">
-                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                  </div>
-                  <div class="timeline-content">
-                    <div class="timeline-title"><strong>张三</strong> 填写了 <strong>商户私钥</strong></div>
-                    <div class="timeline-time">2026-03-01 14:30</div>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  {f.filled
+                    ? <>
+                        <div className={`text-sm ${f.sensitive?'font-mono text-gray-400 tracking-widest':'text-gray-900'}`}>{f.sensitive?'••••••••••••••••••••':f.value}</div>
+                        <div className="text-xs text-gray-400 mt-1">{f.sensitive?'🔒 加密存储 · ':'明文展示 · '}最后更新 {f.updatedAt} · {f.operator} · v{f.version}</div>
+                      </>
+                    : <>
+                        <div className="text-sm text-gray-300 italic">未填写</div>
+                        <div className="text-xs text-gray-400 mt-1">{f.sensitive?'🔒 加密存储':'明文展示'} · 尚未录入</div>
+                      </>
+                  }
                 </div>
-                <div class="timeline-item">
-                  <div class="timeline-dot">
-                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                  </div>
-                  <div class="timeline-content">
-                    <div class="timeline-title"><strong>张三</strong> 填写了 <strong>商户号</strong></div>
-                    <div class="timeline-time">2026-03-01 14:28</div>
-                  </div>
-                </div>
-                <div class="timeline-item">
-                  <div class="timeline-dot" style="background:#f6ffed;border-color:var(--success)">
-                    <svg width="10" height="10" fill="none" stroke="#52c41a" stroke-width="3" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
-                  </div>
-                  <div class="timeline-content">
-                    <div class="timeline-title"><strong>李四</strong> 更新了 <strong>接口地址</strong></div>
-                    <div class="timeline-time">2026-02-20 10:15</div>
-                  </div>
-                </div>
-                <div class="timeline-item">
-                  <div class="timeline-dot" style="background:#f9f0ff;border-color:#722ed1">
-                    <svg width="10" height="10" fill="#722ed1" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/></svg>
-                  </div>
-                  <div class="timeline-content">
-                    <div class="timeline-title"><strong>管理员</strong> 创建了渠道 <strong>Lapay</strong></div>
-                    <div class="timeline-time">2026-02-18 09:00</div>
-                  </div>
+                <div className="flex-shrink-0">
+                  {f.filled
+                    ? <button onClick={()=>{setCredModal(f);setInputVal('');}} className="px-3 h-7 text-xs border border-gray-200 rounded-md hover:border-blue-400 hover:text-blue-500 text-gray-500 transition-colors">重新填写</button>
+                    : <button onClick={()=>{setCredModal(f);setInputVal('');}} className="px-3 h-7 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors">立即填写</button>
+                  }
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
+
+      {credModal && (
+        <Modal title={`${credModal.filled?'重新填写':'填写'} · ${credModal.label}`} onClose={()=>setCredModal(null)}
+          footer={<>
+            <button onClick={()=>setCredModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
+            <button onClick={()=>{
+              if (!inputVal.trim()) { showToast('请输入内容'); return; }
+              setFields(fs=>fs.map(f=>f.key===credModal.key?{...f,filled:true,updatedAt:new Date().toISOString().slice(0,10),operator:'张三',version:f.version+1}:f));
+              setCredModal(null); setInputVal(''); showToast('✓ 凭证已加密写入','success');
+            }} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认提交</button>
+          </>}>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-700 mb-3 flex gap-2">
+            <span>⚠</span><span>提交后原值将被覆盖，<strong>无法还原</strong>。</span>
+          </div>
+          <div className="text-sm font-medium text-gray-700 mb-2">{credModal.label} <code className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{credModal.key}</code></div>
+          <input type={credModal.sensitive?'password':'text'}
+            className={`w-full h-10 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 ${credModal.sensitive?'font-mono tracking-widest':''}`}
+            placeholder={credModal.sensitive?'请输入密钥值...':'请输入值...'} value={inputVal} onChange={e=>setInputVal(e.target.value)} autoFocus/>
+          <p className="text-xs text-gray-400 mt-2">{credModal.sensitive?'🔒 敏感字段，提交后以掩码展示，不存储明文。':'ℹ️ 非敏感字段，提交后明文展示。'}</p>
+        </Modal>
+      )}
+    </main>
+  );
+}
+
+// ── App Root ──────────────────────────────────────────
+function App() {
+  const [activeKey, setActiveKey] = useState('channels');
+  const [detailRow, setDetailRow] = useState(null);
+  const [toast, setToast] = useState({ msg:'', type:'' });
+  const showToast = (msg, type='default') => { setToast({msg,type}); setTimeout(()=>setToast({msg:'',type:''}),2200); };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <Sidebar activeKey={activeKey} onSelect={k=>{setActiveKey(k);setDetailRow(null);}}/>
+      {detailRow
+        ? <CredDetailPage channel={detailRow} onBack={()=>setDetailRow(null)} showToast={showToast}/>
+        : activeKey==='channels'
+          ? <ChannelListPage onViewDetail={setDetailRow} showToast={showToast}/>
+          : <main className="flex-1 flex items-center justify-center"><div className="text-center text-gray-400"><div className="text-4xl mb-3">🚧</div><div className="text-sm">该模块开发中</div></div></main>
+      }
+      <Toast msg={toast.msg} type={toast.type}/>
     </div>
-  </div>
-</div>
-
-
-<!-- ========== MODAL: 填写凭证 ========== -->
-<div class="modal-overlay" id="modal-fill" onclick="closeModalOutside(event)">
-  <div class="modal">
-    <div class="modal-title" id="modal-title">填写商户私钥</div>
-    <div class="modal-desc" id="modal-desc">填写后将加密存储，任何人无法通过页面查看原始值。如需更新，可重新填写覆盖。</div>
-    <div class="form-item">
-      <label class="form-label" id="modal-label">商户私钥</label>
-      <textarea id="modal-input" class="form-input" rows="4" placeholder="请输入凭证值…" style="resize:vertical;font-family:monospace"></textarea>
-      <div class="form-hint" id="modal-hint">🔒 提交后将使用 AES-256 加密存储，页面不会保留明文</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-default" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="submitModal()">确认保存</button>
-    </div>
-  </div>
-</div>
-
-
-<script>
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  window.scrollTo(0, 0);
+  );
 }
 
-function openModal(fieldName, isSensitive) {
-  document.getElementById('modal-title').textContent = '填写 ' + fieldName;
-  document.getElementById('modal-label').textContent = fieldName;
-  document.getElementById('modal-input').value = '';
-  document.getElementById('modal-input').placeholder = '请输入' + fieldName + '…';
-  if (isSensitive) {
-    document.getElementById('modal-hint').textContent = '🔒 提交后将使用 AES-256 加密存储，页面不会保留明文';
-    document.getElementById('modal-desc').textContent = '填写后将加密存储，任何人无法通过页面查看原始值。如需更新，可重新填写覆盖。';
-  } else {
-    document.getElementById('modal-hint').textContent = '提交后将加密存储，非敏感字段解密后可在页面展示';
-    document.getElementById('modal-desc').textContent = '填写该渠道的凭证信息，提交后将安全存储。';
-  }
-  document.getElementById('modal-fill').classList.add('open');
-  setTimeout(() => document.getElementById('modal-input').focus(), 100);
-}
-
-function closeModal() {
-  document.getElementById('modal-fill').classList.remove('open');
-}
-
-function closeModalOutside(e) {
-  if (e.target === document.getElementById('modal-fill')) closeModal();
-}
-
-function submitModal() {
-  const val = document.getElementById('modal-input').value.trim();
-  if (!val) { alert('请输入凭证值'); return; }
-  closeModal();
-  // Show success toast
-  const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;bottom:32px;right:32px;background:#52c41a;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:9999;';
-  toast.textContent = '✓ 凭证已加密保存';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
-}
-</script>
-
-<!-- Footer -->
-<div style="position:fixed;bottom:0;right:0;padding:8px 16px;font-size:11px;color:rgba(0,0,0,0.2);pointer-events:none">Generated by OpenClaw · DataClaw</div>
-
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
 </body>
 </html>

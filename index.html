@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>账号管理系统</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -10,147 +10,66 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body style="margin:0;" class="bg-gray-50 text-gray-800">
-  <div id="root"></div>
-  <script type="text/babel">
+<div id="root"></div>
+<script type="text/babel">
 const { useState } = React;
 
-// ━━━ 菜单（去掉系统设置）━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── 菜单 ──────────────────────────────────────────────
 const MENU = [
-  {
-    group: '基础配置',
-    items: [
-      { key: 'channels', label: '渠道管理', icon: '◈', active: true },
-      { key: 'fields',   label: '字段配置', icon: '≡' },
-    ]
-  },
-  {
-    group: '凭证管理',
-    items: [
-      { key: 'credentials', label: '凭证录入', icon: '🔑' },
-      { key: 'audit',       label: '操作日志', icon: '📋' },
-    ]
-  },
+  { group:'基础配置', items:[
+    { key:'channels', label:'渠道管理', icon:'◈', active:true },
+  ]},
+  { group:'凭证管理', items:[
+    { key:'credentials', label:'凭证录入', icon:'🔑' },
+    { key:'audit',       label:'操作日志', icon:'📋' },
+  ]},
 ];
 
-// ━━━ 表格列 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const COLUMNS = [
-  { key: 'name',         label: '渠道名称', cls: 'font-medium text-gray-900' },
-  { key: 'type',         label: '接入类型', render: v => <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">{v}</span> },
-  { key: 'intStatus',    label: '接入状态', render: v => <StatusBadge map={INT_STATUS_MAP} status={v}/> },
-  { key: 'onlineStatus', label: '上线状态', render: v => <StatusBadge map={ONLINE_STATUS_MAP} status={v}/> },
-  { key: '_progress',    label: '凭证完整度', render: (_, row) => <ProgressBar filled={row.filled} total={row.total}/> },
-  { key: 'expiredAt',    label: '截止日期',  render: (v) => {
-    const expiring = v !== '-' && new Date(v) < new Date(Date.now() + 30*86400000);
-    return <span className={`text-xs ${expiring ? 'text-red-500 font-medium' : 'text-gray-400'}`}>{expiring ? '⚠ ' : ''}{v}</span>;
-  }},
-  { key: 'updatedAt',    label: '最后更新', render: (v, row) => <span className="text-xs text-gray-400 leading-relaxed">{v}<br/>{row.operator}</span> },
-];
-
-// ━━━ 筛选项 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const FILTERS = [
-  { key: 'type',         label: '接入类型', options: [['','全部'],['API','API'],['SFTP','SFTP']] },
-  { key: 'intStatus',    label: '接入状态', options: [['','全部'],['connected','已接入'],['pending','接入中'],['unknown','未知']] },
-  { key: 'onlineStatus', label: '上线状态', options: [['','全部'],['online','已上线'],['offline','已下线'],['unknown','未知']] },
-];
-
-// ━━━ Mock 渠道数据 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── 渠道列表 Mock ──────────────────────────────────────
 const INIT_CHANNELS = [
-  { id:1, name:'Lapay',         type:'API',  intStatus:'connected', onlineStatus:'online',  filled:6, total:6, expiredAt:'2027-06-30', updatedAt:'2026-02-01', operator:'张三' },
-  { id:2, name:'PayPal',        type:'API',  intStatus:'connected', onlineStatus:'online',  filled:3, total:4, expiredAt:'2027-03-15', updatedAt:'2026-01-20', operator:'李四' },
-  { id:3, name:'Stripe',        type:'API',  intStatus:'pending',   onlineStatus:'online',  filled:2, total:6, expiredAt:'2026-12-31', updatedAt:'2026-01-15', operator:'张三' },
-  { id:4, name:'SWIFT 银行转账', type:'SFTP', intStatus:'connected', onlineStatus:'offline', filled:5, total:5, expiredAt:'2025-12-10', updatedAt:'2025-12-10', operator:'王五' },
-  { id:5, name:'Alipay HK',     type:'API',  intStatus:'unknown',   onlineStatus:'online',  filled:1, total:4, expiredAt:'2026-08-01', updatedAt:'2026-01-08', operator:'李四' },
-  { id:6, name:'GrabPay',       type:'API',  intStatus:'pending',   onlineStatus:'unknown', filled:2, total:4, expiredAt:'2027-01-01', updatedAt:'2026-03-01', operator:'张三' },
-  { id:7, name:'Payermax',      type:'API',  intStatus:'connected', onlineStatus:'online',  filled:4, total:4, expiredAt:'2027-09-30', updatedAt:'2026-02-18', operator:'王五' },
-  { id:8, name:'Unipin',        type:'SFTP', intStatus:'pending',   onlineStatus:'unknown', filled:0, total:3, expiredAt:'-',         updatedAt:'2026-03-10', operator:'李四' },
+  { id:1, name:'Lapay',         type:'API',  intStatus:'connected', onlineStatus:'online',  expiredAt:'2027-06-30', updatedAt:'2026-02-01', operator:'张三',
+    // 上层：字段配置 schema
+    fieldDefs:[
+      { id:1, label:'商户号',   key:'merchant_no',          sensitive:false, required:true  },
+      { id:2, label:'商户私钥', key:'merchant_private_key', sensitive:true,  required:true  },
+      { id:3, label:'平台公钥', key:'platform_public_key',  sensitive:true,  required:true  },
+    ],
+    // 下层：凭证明细 rows
+    credRows:[
+      { id:1, values:{ merchant_no:'LPY-8823-CNY', merchant_private_key:'', platform_public_key:'' }, remark:'人民币账户', updatedAt:'2026-02-01', operator:'张三' },
+      { id:2, values:{ merchant_no:'LPY-9944-USD', merchant_private_key:'', platform_public_key:'' }, remark:'美元账户',   updatedAt:'2026-03-01', operator:'张三' },
+    ]
+  },
+  { id:2, name:'PayPal',        type:'API',  intStatus:'connected', onlineStatus:'online',  expiredAt:'2027-03-15', updatedAt:'2026-01-20', operator:'李四', fieldDefs:[], credRows:[] },
+  { id:3, name:'Stripe',        type:'API',  intStatus:'pending',   onlineStatus:'online',  expiredAt:'2026-12-31', updatedAt:'2026-01-15', operator:'张三', fieldDefs:[], credRows:[] },
+  { id:4, name:'SWIFT 银行转账', type:'SFTP', intStatus:'connected', onlineStatus:'offline', expiredAt:'2025-12-10', updatedAt:'2025-12-10', operator:'王五', fieldDefs:[], credRows:[] },
+  { id:5, name:'Alipay HK',     type:'API',  intStatus:'unknown',   onlineStatus:'online',  expiredAt:'2026-08-01', updatedAt:'2026-01-08', operator:'李四', fieldDefs:[], credRows:[] },
+  { id:6, name:'GrabPay',       type:'API',  intStatus:'pending',   onlineStatus:'unknown', expiredAt:'2027-01-01', updatedAt:'2026-03-01', operator:'张三', fieldDefs:[], credRows:[] },
+  { id:7, name:'Payermax',      type:'API',  intStatus:'connected', onlineStatus:'online',  expiredAt:'2027-09-30', updatedAt:'2026-02-18', operator:'王五', fieldDefs:[], credRows:[] },
+  { id:8, name:'Unipin',        type:'SFTP', intStatus:'pending',   onlineStatus:'unknown', expiredAt:'-',          updatedAt:'2026-03-10', operator:'李四', fieldDefs:[], credRows:[] },
 ];
 
-// ━━━ 状态配置 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const INT_STATUS_MAP = {
-  connected: { label:'已接入', dot:'bg-green-500',            cls:'bg-green-50 text-green-700 border border-green-200' },
-  pending:   { label:'接入中', dot:'bg-blue-500 animate-pulse',cls:'bg-blue-50 text-blue-600 border border-blue-200' },
-  unknown:   { label:'未知',   dot:'bg-gray-400',              cls:'bg-gray-100 text-gray-500 border border-gray-200' },
+const INT_STATUS = {
+  connected:{ label:'已接入', dot:'bg-green-500',             cls:'bg-green-50 text-green-700 border border-green-200' },
+  pending:  { label:'接入中', dot:'bg-blue-500 animate-pulse',cls:'bg-blue-50  text-blue-600  border border-blue-200'  },
+  unknown:  { label:'未知',   dot:'bg-gray-400',              cls:'bg-gray-100 text-gray-500  border border-gray-200'  },
 };
-const ONLINE_STATUS_MAP = {
-  online:  { label:'已上线', dot:'bg-green-500', cls:'bg-green-50 text-green-700 border border-green-200' },
-  offline: { label:'已下线', dot:'bg-gray-400',  cls:'bg-gray-100 text-gray-500 border border-gray-200' },
-  unknown: { label:'未知',   dot:'bg-gray-400',  cls:'bg-gray-100 text-gray-500 border border-gray-200' },
+const ONLINE_STATUS = {
+  online: { label:'已上线', dot:'bg-green-500', cls:'bg-green-50 text-green-700 border border-green-200' },
+  offline:{ label:'已下线', dot:'bg-gray-400',  cls:'bg-gray-100 text-gray-500  border border-gray-200'  },
+  unknown:{ label:'未知',   dot:'bg-gray-400',  cls:'bg-gray-100 text-gray-500  border border-gray-200'  },
 };
-
-// ━━━ 新增渠道表单 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const CHANNEL_FORM = [
-  { key:'name',         label:'渠道名称', type:'text' },
-  { key:'type',         label:'接入类型', type:'select', options:['API','SFTP','其他'] },
-  { key:'intStatus',    label:'接入状态', type:'select', options:[{v:'connected',l:'已接入'},{v:'pending',l:'接入中'},{v:'unknown',l:'未知'}] },
-  { key:'onlineStatus', label:'上线状态', type:'select', options:[{v:'online',l:'已上线'},{v:'offline',l:'已下线'},{v:'unknown',l:'未知'}] },
-  { key:'expiredAt',    label:'截止日期', type:'date' },
-];
-
-// ━━━ 凭证字段定义（字段配置表）━━━━━━━━━━━━━━━━━━━━━━━
-// 每个字段可以有多条 values（支持多账号）
-const INIT_CRED_FIELDS = [
-  {
-    id:1, key:'merchant_no', label:'商户号', sensitive:false, required:true, sort:1, desc:'渠道分配的商户编号',
-    values:[
-      { id:1, value:'LPY-8823-CNY', updatedAt:'2026-02-01', operator:'张三', version:2, remark:'人民币账户' },
-      { id:2, value:'LPY-9944-USD', updatedAt:'2026-03-01', operator:'张三', version:1, remark:'美元账户' },
-    ]
-  },
-  {
-    id:2, key:'merchant_private_key', label:'商户私钥', sensitive:true, required:true, sort:2, desc:'签名用，本方持有',
-    values:[
-      { id:1, value:'', updatedAt:'2026-02-01', operator:'张三', version:3, remark:'' },
-    ]
-  },
-  {
-    id:3, key:'platform_public_key', label:'平台公钥', sensitive:true, required:true, sort:3, desc:'验证渠道返回数据用',
-    values:[
-      { id:1, value:'', updatedAt:'2026-01-20', operator:'张三', version:1, remark:'' },
-    ]
-  },
-  {
-    id:4, key:'endpoint', label:'接口地址', sensitive:false, required:true, sort:4, desc:'API base URL',
-    values:[
-      { id:1, value:'https://api.lapay.com/v2', updatedAt:'2026-01-15', operator:'李四', version:1, remark:'生产环境' },
-      { id:2, value:'https://sandbox.lapay.com/v2', updatedAt:'2026-01-15', operator:'李四', version:1, remark:'沙盒环境' },
-    ]
-  },
-  {
-    id:5, key:'doc_username', label:'文档账号', sensitive:false, required:false, sort:5, desc:'',
-    values:[]
-  },
-  {
-    id:6, key:'doc_password', label:'文档密码', sensitive:true, required:false, sort:6, desc:'',
-    values:[]
-  },
-];
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 固定区：通用组件
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const PAGE_SIZE = 6;
 
-function StatusBadge({ map, status }) {
-  const cfg = map[status] || map[Object.keys(map)[Object.keys(map).length-1]];
+// ── 通用组件 ──────────────────────────────────────────
+function Badge({ map, status }) {
+  const cfg = map[status] || Object.values(map).at(-1);
   return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`}></span>{cfg.label}</span>;
-}
-function ProgressBar({ filled, total }) {
-  const pct = total===0 ? 0 : Math.round(filled/total*100);
-  const color = pct===100?'bg-green-500':pct>=50?'bg-blue-500':'bg-red-400';
-  const text  = pct===100?'text-green-600':pct>=50?'text-blue-600':'text-red-500';
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden" style={{minWidth:56}}>
-        <div className={`h-full rounded-full ${color}`} style={{width:`${pct}%`}}></div>
-      </div>
-      <span className={`text-xs font-medium ${text}`}>{filled}/{total}</span>
-    </div>
-  );
 }
 function Modal({ title, onClose, children, footer, wide }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className={`bg-white rounded-xl shadow-2xl ${wide?'w-[720px]':'w-[480px]'} overflow-hidden max-h-[90vh] flex flex-col`}>
+      <div className={`bg-white rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col ${wide?'w-[680px]':'w-[480px]'}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
           <span className="font-semibold text-gray-800">{title}</span>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
@@ -163,26 +82,26 @@ function Modal({ title, onClose, children, footer, wide }) {
 }
 function Toast({ msg, type }) {
   if (!msg) return null;
-  return <div className={`fixed top-4 left-1/2 -translate-x-1/2 ${type==='success'?'bg-green-600':'bg-gray-800'} text-white text-sm px-5 py-2.5 rounded-lg shadow-lg z-[9999]`}>{msg}</div>;
+  return <div className={`fixed top-4 left-1/2 -translate-x-1/2 text-white text-sm px-5 py-2.5 rounded-lg shadow-lg z-[9999] ${type==='success'?'bg-green-600':'bg-gray-800'}`}>{msg}</div>;
 }
 function Sidebar({ activeKey, onSelect }) {
   return (
-    <aside className="w-52 flex-shrink-0 flex flex-col h-screen bg-[#18181b] text-zinc-400">
+    <aside className="w-52 flex-shrink-0 flex flex-col h-screen bg-[#18181b]">
       <div className="flex items-center gap-2.5 px-4 py-4 border-b border-zinc-800">
         <div className="w-7 h-7 bg-blue-500 rounded-md flex items-center justify-center text-white text-sm">🔐</div>
         <span className="text-white text-sm font-semibold">账号管理系统</span>
       </div>
-      <nav className="flex-1 py-3 overflow-y-auto">
+      <nav className="flex-1 py-3">
         {MENU.map(({ group, items }) => (
           <div key={group} className="mb-2">
             <div className="px-4 py-1.5 text-xs font-medium text-zinc-600 uppercase tracking-wider">{group}</div>
             {items.map(item => {
-              const isActive = item.key === activeKey;
+              const active = item.key === activeKey;
               return (
                 <button key={item.key} onClick={() => onSelect(item.key)}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${isActive?'bg-zinc-700 text-white':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
+                  className={`w-full flex items-center gap-2.5 px-4 py-2 text-sm transition-colors ${active?'bg-zinc-700 text-white':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
                   <span className="w-5 text-center">{item.icon}</span>{item.label}
-                  {isActive && <span className="ml-auto w-1 h-4 bg-blue-500 rounded-full"></span>}
+                  {active && <span className="ml-auto w-1 h-4 bg-blue-500 rounded-full"></span>}
                 </button>
               );
             })}
@@ -197,157 +116,163 @@ function Sidebar({ activeKey, onSelect }) {
   );
 }
 
-// ━━━ 渠道列表页 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function ChannelListPage({ onViewDetail, showToast }) {
+// ── 渠道列表页 ────────────────────────────────────────
+function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
   const [search, setSearch]   = useState('');
-  const [filters, setFilters] = useState({});
+  const [fInt, setFInt]       = useState('');
+  const [fOnline, setFOnline] = useState('');
   const [page, setPage]       = useState(1);
-  const [selected, setSelected] = useState([]);
   const [modal, setModal]     = useState(null);
   const [editRow, setEditRow] = useState(null);
-  const [data, setData]       = useState(INIT_CHANNELS);
 
-  const filtered = data.filter(r => {
+  const filtered = channels.filter(r => {
     if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
-    for (const [k,v] of Object.entries(filters)) { if (v && r[k]!==v) return false; }
+    if (fInt    && r.intStatus    !== fInt)    return false;
+    if (fOnline && r.onlineStatus !== fOnline) return false;
     return true;
   });
-  const total=filtered.length, totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
-  const paginated=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
-  const toggleAll=()=>setSelected(s=>s.length===paginated.length?[]:paginated.map(r=>r.id));
-  const toggleRow=id=>setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);
-  const hasFilter=search||Object.values(filters).some(Boolean);
+  const total = filtered.length, totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
 
-  const stats=[
-    {label:'渠道总数',value:data.length,unit:'个',color:'text-gray-900',sub:'第一阶段海外支付'},
-    {label:'已接入',value:data.filter(c=>c.intStatus==='connected').length,unit:'个',color:'text-green-600',sub:'↑2 较上月'},
-    {label:'凭证待补',value:data.filter(c=>c.filled<c.total).length,unit:'个',color:'text-yellow-600',sub:'有字段未填写'},
-    {label:'即将到期',value:data.filter(c=>c.expiredAt!=='-'&&new Date(c.expiredAt)<new Date(Date.now()+30*86400000)).length,unit:'个',color:'text-red-500',sub:'30天内到期'},
-  ];
-
-  const confirmSave=()=>{
-    if(modal==='add'){const id=Math.max(...data.map(r=>r.id))+1;setData(d=>[...d,{...editRow,id,filled:0,total:0,updatedAt:new Date().toISOString().slice(0,10),operator:'张三'}]);}
-    else setData(d=>d.map(r=>r.id===editRow.id?{...r,...editRow}:r));
-    setModal(null);showToast(modal==='add'?'✓ 渠道已新增':'✓ 修改已保存','success');
+  const confirmSave = () => {
+    if (modal==='add') { const id=Math.max(...channels.map(r=>r.id))+1; setChannels(d=>[...d,{...editRow,id,fieldDefs:[],credRows:[],updatedAt:new Date().toISOString().slice(0,10),operator:'张三'}]); }
+    else setChannels(d=>d.map(r=>r.id===editRow.id?{...r,...editRow}:r));
+    setModal(null); showToast(modal==='add'?'✓ 渠道已新增':'✓ 已保存','success');
   };
+
+  const stats = [
+    {label:'渠道总数',  value:channels.length,                                               color:'text-gray-900',   sub:'第一阶段海外支付'},
+    {label:'已接入',    value:channels.filter(c=>c.intStatus==='connected').length,          color:'text-green-600',  sub:''},
+    {label:'字段未配置',value:channels.filter(c=>c.fieldDefs.length===0).length,            color:'text-yellow-600', sub:'尚未配置字段'},
+    {label:'即将到期',  value:channels.filter(c=>c.expiredAt!=='-'&&new Date(c.expiredAt)<new Date(Date.now()+30*86400000)).length, color:'text-red-500', sub:'30天内'},
+  ];
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
       <div className="px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
-        <h1 className="text-base font-semibold text-gray-900">渠道管理</h1>
-        <p className="text-xs text-gray-400 mt-0.5">管理海外支付渠道凭证</p>
+        <h1 className="text-base font-semibold">渠道管理</h1>
+        <p className="text-xs text-gray-400 mt-0.5">点击渠道名称进入字段配置与凭证录入</p>
       </div>
       <div className="flex-1 overflow-auto px-6 py-4">
+
         {/* 统计卡 */}
         <div className="grid grid-cols-4 gap-4 mb-4">
           {stats.map(s=>(
             <div key={s.label} className="bg-white border border-gray-200 rounded-lg px-4 py-3">
               <div className="text-xs text-gray-500 mb-1">{s.label}</div>
-              <div className={`text-2xl font-bold ${s.color}`}>{s.value}<span className="text-sm font-normal text-gray-400 ml-1">{s.unit}</span></div>
-              <div className="text-xs text-gray-400 mt-0.5">{s.sub}</div>
+              <div className={`text-2xl font-bold ${s.color}`}>{s.value}<span className="text-sm font-normal text-gray-400 ml-1">个</span></div>
+              {s.sub && <div className="text-xs text-gray-400 mt-0.5">{s.sub}</div>}
             </div>
           ))}
         </div>
-        {/* 筛选条 */}
+
+        {/* 筛选 */}
         <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-3 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 h-8 focus-within:border-blue-400 focus-within:bg-white transition-colors">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 h-8 focus-within:border-blue-400 focus-within:bg-white">
             <span className="text-gray-400 text-sm">🔍</span>
             <input className="bg-transparent text-sm outline-none w-36 placeholder:text-gray-400" placeholder="搜索渠道名称..."
               value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
           </div>
-          {FILTERS.map(f=>(
-            <div key={f.key} className="flex items-center gap-1.5">
+          {[
+            {label:'接入状态',val:fInt,set:setFInt,opts:[['','全部'],['connected','已接入'],['pending','接入中'],['unknown','未知']]},
+            {label:'上线状态',val:fOnline,set:setFOnline,opts:[['','全部'],['online','已上线'],['offline','已下线'],['unknown','未知']]},
+          ].map(f=>(
+            <div key={f.label} className="flex items-center gap-1.5">
               <span className="text-xs text-gray-500">{f.label}</span>
               <select className="h-8 border border-gray-200 rounded-md px-2 text-sm bg-white focus:outline-none focus:border-blue-400"
-                value={filters[f.key]||''} onChange={e=>{setFilters(fs=>({...fs,[f.key]:e.target.value}));setPage(1);}}>
-                {f.options.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                value={f.val} onChange={e=>{f.set(e.target.value);setPage(1);}}>
+                {f.opts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
               </select>
             </div>
           ))}
-          {hasFilter && <button onClick={()=>{setSearch('');setFilters({});setPage(1);}} className="text-xs text-blue-500 hover:text-blue-700">重置</button>}
+          {(search||fInt||fOnline) && <button onClick={()=>{setSearch('');setFInt('');setFOnline('');setPage(1);}} className="text-xs text-blue-500">重置</button>}
           <span className="ml-auto text-xs text-gray-400">共 {total} 条</span>
         </div>
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-2 mb-3">
+
+        {/* 操作 */}
+        <div className="flex gap-2 mb-3">
           <button onClick={()=>{setEditRow({name:'',type:'API',intStatus:'pending',onlineStatus:'unknown',expiredAt:''});setModal('add');}}
-            className="flex items-center gap-1.5 px-3 h-8 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition-colors">＋ 新增渠道</button>
-          <button onClick={()=>showToast('已导出 Excel')} className="px-3 h-8 bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-sm text-gray-600 rounded-md">↓ 导出</button>
-          {selected.length>0 && (
-            <button onClick={()=>{setData(d=>d.filter(r=>!selected.includes(r.id)));setSelected([]);showToast(`✓ 已删除 ${selected.length} 条`,'success');}}
-              className="px-3 h-8 bg-white border border-red-200 hover:bg-red-50 text-red-500 text-sm rounded-md">🗑 删除所选 ({selected.length})</button>
-          )}
+            className="px-3 h-8 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md">＋ 新增渠道</button>
+          <button onClick={()=>showToast('已导出')} className="px-3 h-8 bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-sm text-gray-600 rounded-md">↓ 导出</button>
         </div>
+
         {/* 表格 */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded" checked={selected.length===paginated.length&&paginated.length>0} onChange={toggleAll}/></th>
-                {COLUMNS.map(c=><th key={c.key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">{c.label}</th>)}
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">操作</th>
+                {['渠道名称','接入类型','接入状态','上线状态','字段数','凭证条数','截止日期','操作'].map(h=>(
+                  <th key={h} className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${h==='操作'?'text-right':'text-left'}`}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {paginated.length===0
-                ? <tr><td colSpan={COLUMNS.length+2} className="text-center py-12 text-gray-400 text-sm">暂无数据</td></tr>
-                : paginated.map(row=>(
-                  <tr key={row.id} className={`hover:bg-gray-50 transition-colors cursor-pointer ${selected.includes(row.id)?'bg-blue-50':''}`} onClick={()=>onViewDetail(row)}>
-                    <td className="px-4 py-3" onClick={e=>e.stopPropagation()}><input type="checkbox" className="rounded" checked={selected.includes(row.id)} onChange={()=>toggleRow(row.id)}/></td>
-                    {COLUMNS.map(c=>(
-                      <td key={c.key} className={`px-4 py-3 ${c.cls||''}`}>{c.render?c.render(row[c.key],row):row[c.key]}</td>
-                    ))}
-                    <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={()=>onViewDetail(row)} className="px-2.5 py-1 text-xs text-blue-500 hover:bg-blue-50 rounded">查看凭证</button>
-                        <span className="text-gray-200">|</span>
-                        <button onClick={()=>{setEditRow({...row});setModal('edit');}} className="px-2.5 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">编辑</button>
-                        <span className="text-gray-200">|</span>
-                        <button onClick={()=>{setEditRow(row);setModal('delete');}} className="px-2.5 py-1 text-xs text-red-400 hover:bg-red-50 rounded">删除</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+              {paginated.map(row=>(
+                <tr key={row.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={()=>onEnter(row)}>
+                  <td className="px-4 py-3 font-medium text-blue-600 hover:underline">{row.name}</td>
+                  <td className="px-4 py-3"><span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">{row.type}</span></td>
+                  <td className="px-4 py-3"><Badge map={INT_STATUS} status={row.intStatus}/></td>
+                  <td className="px-4 py-3"><Badge map={ONLINE_STATUS} status={row.onlineStatus}/></td>
+                  <td className="px-4 py-3">
+                    {row.fieldDefs.length===0
+                      ? <span className="text-xs text-gray-300">未配置</span>
+                      : <span className="text-xs font-medium text-gray-700">{row.fieldDefs.length} 个字段</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {row.credRows.length===0
+                      ? <span className="text-xs text-gray-300">—</span>
+                      : <span className="text-xs font-medium text-gray-700">{row.credRows.length} 条</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {(() => { const exp = row.expiredAt!=='-' && new Date(row.expiredAt)<new Date(Date.now()+30*86400000); return <span className={`text-xs ${exp?'text-red-500 font-medium':'text-gray-400'}`}>{exp?'⚠ ':''}{row.expiredAt}</span>; })()}
+                  </td>
+                  <td className="px-4 py-3 text-right" onClick={e=>e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={()=>onEnter(row)} className="px-2.5 py-1 text-xs text-blue-500 hover:bg-blue-50 rounded">进入配置</button>
+                      <span className="text-gray-200">|</span>
+                      <button onClick={()=>{setEditRow({...row});setModal('edit');}} className="px-2.5 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">编辑</button>
+                      <span className="text-gray-200">|</span>
+                      <button onClick={()=>{setEditRow(row);setModal('delete');}} className="px-2.5 py-1 text-xs text-red-400 hover:bg-red-50 rounded">删除</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+
         {/* 分页 */}
         <div className="flex items-center justify-between mt-3 px-1">
-          <span className="text-xs text-gray-400">第 {Math.min((page-1)*PAGE_SIZE+1,total)}–{Math.min(page*PAGE_SIZE,total)} 条，共 {total} 条</span>
+          <span className="text-xs text-gray-400">共 {total} 条</span>
           <div className="flex items-center gap-1">
             {[{l:'«',a:()=>setPage(1),d:page===1},{l:'‹',a:()=>setPage(p=>p-1),d:page===1}].map((b,i)=>(
-              <button key={i} onClick={b.a} disabled={b.d} className="w-8 h-8 flex items-center justify-center text-xs rounded border border-gray-200 text-gray-500 hover:border-blue-400 disabled:opacity-30 disabled:cursor-not-allowed">{b.l}</button>
+              <button key={i} onClick={b.a} disabled={b.d} className="w-8 h-8 flex items-center justify-center text-xs rounded border border-gray-200 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:border-blue-400">{b.l}</button>
             ))}
-            {Array.from({length:totalPages},(_,i)=>i+1)
-              .filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1)
-              .reduce((acc,p,i,arr)=>{if(i>0&&p-arr[i-1]>1)acc.push('…');acc.push(p);return acc;},[])
-              .map((p,i)=>p==='…'
-                ?<span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400">…</span>
-                :<button key={p} onClick={()=>setPage(p)} className={`w-8 h-8 flex items-center justify-center text-xs rounded border transition-colors ${p===page?'bg-blue-500 text-white border-blue-500':'border-gray-200 text-gray-600 hover:border-blue-400'}`}>{p}</button>
-              )}
+            {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+              <button key={p} onClick={()=>setPage(p)} className={`w-8 h-8 flex items-center justify-center text-xs rounded border transition-colors ${p===page?'bg-blue-500 text-white border-blue-500':'border-gray-200 text-gray-600 hover:border-blue-400'}`}>{p}</button>
+            ))}
             {[{l:'›',a:()=>setPage(p=>p+1),d:page===totalPages},{l:'»',a:()=>setPage(totalPages),d:page===totalPages}].map((b,i)=>(
-              <button key={i} onClick={b.a} disabled={b.d} className="w-8 h-8 flex items-center justify-center text-xs rounded border border-gray-200 text-gray-500 hover:border-blue-400 disabled:opacity-30 disabled:cursor-not-allowed">{b.l}</button>
+              <button key={i} onClick={b.a} disabled={b.d} className="w-8 h-8 flex items-center justify-center text-xs rounded border border-gray-200 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:border-blue-400">{b.l}</button>
             ))}
           </div>
         </div>
       </div>
-      {/* Modals */}
+
+      {/* 新增/编辑渠道 */}
       {(modal==='add'||modal==='edit') && (
         <Modal title={modal==='add'?'新增渠道':'编辑渠道'} onClose={()=>setModal(null)}
-          footer={<>
-            <button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
-            <button onClick={confirmSave} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认</button>
-          </>}>
+          footer={<><button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={confirmSave} className="px-4 h-8 text-sm bg-blue-500 text-white rounded-md">确认</button></>}>
           <div className="space-y-3">
-            {CHANNEL_FORM.map(f=>(
-              <div key={f.key} className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">{f.label}</label>
-                {f.type==='select'
-                  ?<select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white" value={editRow?.[f.key]||''} onChange={e=>setEditRow(r=>({...r,[f.key]:e.target.value}))}>
-                    <option value="">请选择</option>
-                    {f.options.map(o=>typeof o==='string'?<option key={o}>{o}</option>:<option key={o.v} value={o.v}>{o.l}</option>)}
-                  </select>
-                  :<input type={f.type} className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400" value={editRow?.[f.key]||''} onChange={e=>setEditRow(r=>({...r,[f.key]:e.target.value}))}/>
-                }
+            {[{k:'name',label:'渠道名称',type:'text'},{k:'type',label:'接入类型',type:'text'},{k:'expiredAt',label:'截止日期',type:'date'}].map(f=>(
+              <div key={f.k} className="flex flex-col gap-1"><label className="text-xs text-gray-500">{f.label}</label>
+                <input type={f.type} className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400" value={editRow?.[f.k]||''} onChange={e=>setEditRow(r=>({...r,[f.k]:e.target.value}))}/>
+              </div>
+            ))}
+            {[{k:'intStatus',label:'接入状态',opts:[{v:'connected',l:'已接入'},{v:'pending',l:'接入中'},{v:'unknown',l:'未知'}]},{k:'onlineStatus',label:'上线状态',opts:[{v:'online',l:'已上线'},{v:'offline',l:'已下线'},{v:'unknown',l:'未知'}]}].map(f=>(
+              <div key={f.k} className="flex flex-col gap-1"><label className="text-xs text-gray-500">{f.label}</label>
+                <select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white" value={editRow?.[f.k]||''} onChange={e=>setEditRow(r=>({...r,[f.k]:e.target.value}))}>
+                  {f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+                </select>
               </div>
             ))}
           </div>
@@ -355,10 +280,7 @@ function ChannelListPage({ onViewDetail, showToast }) {
       )}
       {modal==='delete' && (
         <Modal title="确认删除" onClose={()=>setModal(null)}
-          footer={<>
-            <button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
-            <button onClick={()=>{setData(d=>d.filter(r=>r.id!==editRow.id));setModal(null);showToast('✓ 已删除','success');}} className="px-4 h-8 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md">确认删除</button>
-          </>}>
+          footer={<><button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={()=>{setChannels(d=>d.filter(r=>r.id!==editRow.id));setModal(null);showToast('✓ 已删除','success');}} className="px-4 h-8 text-sm bg-red-500 text-white rounded-md">确认删除</button></>}>
           <p className="text-sm text-gray-600">确定删除 <strong>「{editRow?.name}」</strong> 吗？</p>
         </Modal>
       )}
@@ -366,333 +288,343 @@ function ChannelListPage({ onViewDetail, showToast }) {
   );
 }
 
-// ━━━ 渠道凭证详情页 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function CredDetailPage({ channel, onBack, showToast }) {
-  const [fields, setFields]     = useState(INIT_CRED_FIELDS);
-  const [credModal, setCredModal] = useState(null); // { field, valueId: null|id }
-  const [inputVal, setInputVal] = useState('');
-  const [inputRemark, setInputRemark] = useState('');
-  const [fieldConfigOpen, setFieldConfigOpen] = useState(false);
-  const [editField, setEditField] = useState(null);   // 正在编辑的字段定义
-  const [fieldModal, setFieldModal] = useState(null); // 'add'|'edit'|'delete'
+// ── 渠道详情页：字段配置 + 凭证明细 ──────────────────
+function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
+  // 字段定义 (schema)
+  const [fieldDefs, setFieldDefs] = useState(channel.fieldDefs);
+  // 凭证明细 (rows)
+  const [credRows, setCredRows]   = useState(channel.credRows);
 
-  const totalValues = fields.reduce((s,f)=>s+f.values.length, 0);
-  const filledFields = fields.filter(f=>f.values.length>0).length;
+  // 字段配置相关 state
+  const [addFieldModal, setAddFieldModal] = useState(false);
+  const [newField, setNewField]           = useState({ label:'', key:'', sensitive:false, required:true });
 
-  // 添加 / 覆写某条凭证值
+  // 凭证录入相关 state
+  const [credModal, setCredModal] = useState(null); // null | { mode:'add'|'edit', row }
+  const [credForm, setCredForm]   = useState({});   // { [key]: value }
+  const [credRemark, setCredRemark] = useState('');
+
+  // 保存到父组件
+  const persist = (defs, rows) => {
+    onSave({ ...channel, fieldDefs: defs, credRows: rows });
+    showToast('✓ 已保存','success');
+  };
+
+  // ── 字段配置操作 ──
+  const addField = () => {
+    if (!newField.label.trim()) { showToast('请填写字段名称'); return; }
+    const key = newField.key.trim() || newField.label.trim().toLowerCase().replace(/\s+/g,'_');
+    if (fieldDefs.find(f=>f.key===key)) { showToast('字段标识已存在'); return; }
+    const id = fieldDefs.length ? Math.max(...fieldDefs.map(f=>f.id))+1 : 1;
+    const updated = [...fieldDefs, { id, ...newField, key }];
+    setFieldDefs(updated);
+    setAddFieldModal(false);
+    setNewField({ label:'', key:'', sensitive:false, required:true });
+    persist(updated, credRows);
+  };
+  const removeField = (fid) => {
+    const updated = fieldDefs.filter(f=>f.id!==fid);
+    setFieldDefs(updated);
+    persist(updated, credRows);
+  };
+  const toggleSensitive = (fid) => {
+    const updated = fieldDefs.map(f=>f.id===fid?{...f,sensitive:!f.sensitive}:f);
+    setFieldDefs(updated);
+    persist(updated, credRows);
+  };
+  const toggleRequired = (fid) => {
+    const updated = fieldDefs.map(f=>f.id===fid?{...f,required:!f.required}:f);
+    setFieldDefs(updated);
+    persist(updated, credRows);
+  };
+
+  // ── 凭证明细操作 ──
+  const openAddCred = () => {
+    if (fieldDefs.length===0) { showToast('请先配置字段'); return; }
+    setCredForm({});
+    setCredRemark('');
+    setCredModal({ mode:'add', row:null });
+  };
+  const openEditCred = (row) => {
+    setCredForm({ ...row.values });
+    setCredRemark(row.remark||'');
+    setCredModal({ mode:'edit', row });
+  };
   const submitCred = () => {
-    if (!inputVal.trim()) { showToast('请输入内容'); return; }
-    setFields(fs => fs.map(f => {
-      if (f.id !== credModal.fieldId) return f;
-      if (credModal.valueId === null) {
-        // 新增一条
-        const newId = f.values.length ? Math.max(...f.values.map(v=>v.id))+1 : 1;
-        return { ...f, values: [...f.values, { id:newId, value:f.sensitive?'':inputVal, updatedAt:new Date().toISOString().slice(0,10), operator:'张三', version:1, remark:inputRemark }] };
-      } else {
-        // 覆写某条
-        return { ...f, values: f.values.map(v => v.id===credModal.valueId ? { ...v, value:f.sensitive?'':inputVal, updatedAt:new Date().toISOString().slice(0,10), operator:'张三', version:v.version+1, remark:inputRemark||v.remark } : v) };
-      }
-    }));
-    setCredModal(null); setInputVal(''); setInputRemark('');
-    showToast('✓ 凭证已加密写入','success');
-  };
-
-  // 删除某条凭证值
-  const deleteCredValue = (fieldId, valueId) => {
-    setFields(fs => fs.map(f => f.id===fieldId ? {...f, values:f.values.filter(v=>v.id!==valueId)} : f));
-    showToast('✓ 已删除','success');
-  };
-
-  // 字段配置：保存字段定义
-  const saveFieldDef = () => {
-    if (!editField?.key || !editField?.label) { showToast('字段标识和展示名称不能为空'); return; }
-    if (fieldModal==='add') {
-      const id = fields.length ? Math.max(...fields.map(f=>f.id))+1 : 1;
-      setFields(fs => [...fs, {...editField, id, values:[]}]);
+    const now = new Date().toISOString().slice(0,10);
+    let updated;
+    if (credModal.mode==='add') {
+      const id = credRows.length ? Math.max(...credRows.map(r=>r.id))+1 : 1;
+      updated = [...credRows, { id, values:{ ...credForm }, remark:credRemark, updatedAt:now, operator:'张三' }];
     } else {
-      setFields(fs => fs.map(f => f.id===editField.id ? {...f,...editField} : f));
+      updated = credRows.map(r=>r.id===credModal.row.id ? { ...r, values:{ ...credForm }, remark:credRemark, updatedAt:now } : r);
     }
-    setFieldModal(null); showToast('✓ 字段配置已保存','success');
+    setCredRows(updated);
+    setCredModal(null);
+    persist(fieldDefs, updated);
+  };
+  const deleteCred = (rid) => {
+    const updated = credRows.filter(r=>r.id!==rid);
+    setCredRows(updated);
+    persist(fieldDefs, updated);
+    showToast('✓ 已删除','success');
   };
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
+      {/* 页头 */}
       <div className="px-6 py-4 bg-white border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
         <button onClick={onBack} className="text-gray-400 hover:text-blue-500 text-lg leading-none transition-colors">←</button>
         <div>
-          <h1 className="text-base font-semibold text-gray-900">{channel.name} · 渠道凭证详情</h1>
-          <p className="text-xs text-gray-400 mt-0.5">渠道管理 / 凭证详情</p>
+          <h1 className="text-base font-semibold">{channel.name}</h1>
+          <p className="text-xs text-gray-400 mt-0.5">渠道管理 / {channel.name}</p>
+        </div>
+        <div className="ml-4 flex items-center gap-2">
+          <Badge map={INT_STATUS} status={channel.intStatus}/>
+          <Badge map={ONLINE_STATUS} status={channel.onlineStatus}/>
         </div>
       </div>
-      <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
 
-        {/* 基础信息 */}
-        <div className="bg-white border border-gray-200 rounded-lg">
-          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2"><span className="w-0.5 h-4 bg-blue-500 rounded-full block"></span><span className="font-semibold text-sm">基础信息</span></div>
-            <div className="flex gap-2">
-              <button className="px-3 h-7 text-xs border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
-              <button onClick={()=>showToast('✓ 已保存','success')} className="px-3 h-7 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600">保存修改</button>
-            </div>
-          </div>
-          <div className="px-5 py-4 grid grid-cols-3 gap-4">
-            {[{label:'渠道名称',k:'name',type:'text'},{label:'接入类型',k:'type',type:'text'}].map(f=>(
-              <div key={f.k} className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">{f.label}</label>
-                <input type={f.type} defaultValue={channel[f.k]} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"/>
-              </div>
-            ))}
-            <div className="flex flex-col gap-1"><label className="text-xs text-gray-500">接入状态</label>
-              <select defaultValue={channel.intStatus} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                <option value="connected">已接入</option><option value="pending">接入中</option><option value="unknown">未知</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1"><label className="text-xs text-gray-500">上线状态</label>
-              <select defaultValue={channel.onlineStatus} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                <option value="online">已上线</option><option value="offline">已下线</option><option value="unknown">未知</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1"><label className="text-xs text-gray-500">截止日期</label>
-              <input type="date" defaultValue={channel.expiredAt} className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"/>
-            </div>
-            <div className="flex flex-col gap-1 col-span-2"><label className="text-xs text-gray-500">备注</label>
-              <input type="text" defaultValue="主要用于东南亚市场，支持 PHP/VND/THB" className="h-8 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"/>
-            </div>
-          </div>
-        </div>
+      <div className="flex-1 overflow-auto px-6 py-4 space-y-5">
 
-        {/* 凭证字段 */}
+        {/* ══ 区域A：字段配置 ══════════════════════════════ */}
         <div className="bg-white border border-gray-200 rounded-lg">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-0.5 h-4 bg-blue-500 rounded-full block"></span>
-              <span className="font-semibold text-sm">凭证字段</span>
-              <span className="text-xs text-gray-400">字段由渠道配置决定，支持多条</span>
+              <span className="font-semibold text-sm">字段配置</span>
+              <span className="text-xs text-gray-400">配置该渠道需要录入哪些字段，以及是否脱敏</span>
             </div>
-            <button onClick={()=>setFieldConfigOpen(true)}
-              className="px-3 h-7 text-xs border border-gray-200 rounded-md hover:border-blue-400 hover:text-blue-500 text-gray-600 transition-colors">
-              ⚙ 管理字段配置
+            <button onClick={()=>{setNewField({label:'',key:'',sensitive:false,required:true});setAddFieldModal(true);}}
+              className="flex items-center gap-1.5 px-3 h-7 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors">
+              ＋ 添加字段
             </button>
           </div>
 
-          {/* 完整度 */}
-          <div className="px-5 py-3 border-b border-gray-100">
-            <div className="flex items-center gap-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5">
-              <span className="text-xl font-bold text-green-600">{filledFields}</span><span className="text-xs text-gray-500">字段已录入</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-xl font-bold text-blue-600">{totalValues}</span><span className="text-xs text-gray-500">条凭证值</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-xl font-bold text-gray-400">{fields.filter(f=>f.values.length===0).length}</span><span className="text-xs text-gray-500">字段未录入</span>
+          {fieldDefs.length===0 ? (
+            <div className="px-5 py-8 text-center">
+              <div className="text-3xl mb-2">📋</div>
+              <div className="text-sm text-gray-400 mb-3">尚未配置字段</div>
+              <button onClick={()=>{setNewField({label:'',key:'',sensitive:false,required:true});setAddFieldModal(true);}}
+                className="px-4 h-8 text-sm border border-blue-200 text-blue-500 hover:bg-blue-50 rounded-md">添加第一个字段</button>
             </div>
-          </div>
-
-          {/* 字段列表 */}
-          <div className="divide-y divide-gray-100">
-            {fields.map(f=>(
-              <div key={f.id} className="px-5 py-4">
-                {/* 字段头 */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    {f.required ? <span className="text-red-400 text-sm font-medium">*</span> : <span className="text-xs text-gray-300">选填</span>}
-                    <span className="text-sm font-medium text-gray-800">{f.label}</span>
-                    <code className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{f.key}</code>
-                    {f.sensitive && <span className="text-xs text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">敏感</span>}
-                    {f.desc && <span className="text-xs text-gray-400">· {f.desc}</span>}
-                  </div>
-                  <button
-                    onClick={()=>setCredModal({fieldId:f.id, fieldLabel:f.label, sensitive:f.sensitive, valueId:null})}
-                    className="flex items-center gap-1 px-2.5 h-7 text-xs text-blue-500 border border-blue-200 hover:bg-blue-50 rounded-md transition-colors">
-                    ＋ 添加
-                  </button>
-                </div>
-
-                {/* 多条凭证值 */}
-                {f.values.length===0 ? (
-                  <div className="text-xs text-gray-300 italic pl-6 py-1">暂无录入</div>
-                ) : (
-                  <div className="pl-6 space-y-1.5">
-                    {f.values.map(v=>(
-                      <div key={v.id} className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 group">
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-sm ${f.sensitive?'font-mono text-gray-400 tracking-widest':'text-gray-900'}`}>
-                            {f.sensitive ? '••••••••••••••••••••' : v.value}
-                          </div>
-                          <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
-                            {v.remark && <span className="text-blue-500 bg-blue-50 px-1.5 py-0 rounded">{v.remark}</span>}
-                            <span>{f.sensitive?'🔒 加密 · ':''}更新 {v.updatedAt} · {v.operator} · v{v.version}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={()=>{setCredModal({fieldId:f.id,fieldLabel:f.label,sensitive:f.sensitive,valueId:v.id});setInputVal('');setInputRemark(v.remark||'');}}
-                            className="px-2 h-6 text-xs text-gray-500 hover:bg-white hover:text-blue-500 border border-gray-200 rounded transition-colors">覆写</button>
-                          <button onClick={()=>deleteCredValue(f.id,v.id)}
-                            className="px-2 h-6 text-xs text-gray-500 hover:bg-white hover:text-red-500 border border-gray-200 rounded transition-colors">删除</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          ) : (
+            <div className="px-5 py-3">
+              {/* 字段表头 */}
+              <div className="grid grid-cols-12 gap-3 px-3 py-1.5 text-xs text-gray-400 font-medium uppercase tracking-wide border-b border-gray-100 mb-1">
+                <div className="col-span-3">字段名称</div>
+                <div className="col-span-3">字段标识</div>
+                <div className="col-span-2 text-center">是否脱敏</div>
+                <div className="col-span-2 text-center">是否必填</div>
+                <div className="col-span-2 text-right">操作</div>
               </div>
-            ))}
+              {/* 字段行 */}
+              <div className="space-y-1">
+                {fieldDefs.map(f=>(
+                  <div key={f.id} className="grid grid-cols-12 gap-3 items-center px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group">
+                    <div className="col-span-3">
+                      <span className="text-sm font-medium text-gray-800">{f.label}</span>
+                      {f.required && <span className="text-red-400 text-xs ml-1">*</span>}
+                    </div>
+                    <div className="col-span-3">
+                      <code className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{f.key}</code>
+                    </div>
+                    {/* 脱敏 toggle */}
+                    <div className="col-span-2 flex justify-center">
+                      <button onClick={()=>toggleSensitive(f.id)}
+                        className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none ${f.sensitive?'bg-orange-400':'bg-gray-200'}`}>
+                        <span className={`inline-block w-3.5 h-3.5 transform rounded-full bg-white shadow transition-transform ${f.sensitive?'translate-x-4':'translate-x-0.5'}`}></span>
+                      </button>
+                      <span className={`ml-1.5 text-xs ${f.sensitive?'text-orange-500':'text-gray-400'}`}>{f.sensitive?'掩码':'明文'}</span>
+                    </div>
+                    {/* 必填 toggle */}
+                    <div className="col-span-2 flex justify-center">
+                      <button onClick={()=>toggleRequired(f.id)}
+                        className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none ${f.required?'bg-blue-500':'bg-gray-200'}`}>
+                        <span className={`inline-block w-3.5 h-3.5 transform rounded-full bg-white shadow transition-transform ${f.required?'translate-x-4':'translate-x-0.5'}`}></span>
+                      </button>
+                      <span className={`ml-1.5 text-xs ${f.required?'text-blue-500':'text-gray-400'}`}>{f.required?'必填':'选填'}</span>
+                    </div>
+                    {/* 删除 */}
+                    <div className="col-span-2 flex justify-end">
+                      <button onClick={()=>removeField(f.id)} className="px-2 py-1 text-xs text-red-400 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity">删除</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ══ 区域B：凭证明细 ══════════════════════════════ */}
+        <div className="bg-white border border-gray-200 rounded-lg">
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-0.5 h-4 bg-green-500 rounded-full block"></span>
+              <span className="font-semibold text-sm">凭证明细</span>
+              <span className="text-xs text-gray-400">按上方字段录入凭证，可写多条</span>
+              {credRows.length>0 && <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">{credRows.length} 条</span>}
+            </div>
+            <button onClick={openAddCred}
+              className={`flex items-center gap-1.5 px-3 h-7 text-xs rounded-md transition-colors ${fieldDefs.length===0?'bg-gray-100 text-gray-400 cursor-not-allowed':'bg-green-500 hover:bg-green-600 text-white'}`}>
+              ＋ 新增一条
+            </button>
           </div>
+
+          {fieldDefs.length===0 ? (
+            <div className="px-5 py-6 text-center text-xs text-gray-300">请先完成字段配置，再录入凭证</div>
+          ) : credRows.length===0 ? (
+            <div className="px-5 py-8 text-center">
+              <div className="text-3xl mb-2">🔑</div>
+              <div className="text-sm text-gray-400 mb-3">暂无凭证记录</div>
+              <button onClick={openAddCred} className="px-4 h-8 text-sm border border-green-200 text-green-600 hover:bg-green-50 rounded-md">新增第一条</button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">#</th>
+                    {fieldDefs.map(f=>(
+                      <th key={f.key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        <span>{f.label}</span>
+                        {f.sensitive && <span className="ml-1 text-orange-400 text-xs">🔒</span>}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">备注</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">更新</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wide">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {credRows.map((row,idx)=>(
+                    <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-xs text-gray-400">{idx+1}</td>
+                      {fieldDefs.map(f=>(
+                        <td key={f.key} className="px-4 py-3">
+                          {f.sensitive
+                            ? <span className="font-mono text-sm text-gray-400 tracking-widest">••••••••</span>
+                            : <span className="text-sm text-gray-800">{row.values[f.key] || <span className="text-gray-300 italic text-xs">未填写</span>}</span>
+                          }
+                        </td>
+                      ))}
+                      <td className="px-4 py-3">
+                        {row.remark ? <span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded">{row.remark}</span> : <span className="text-xs text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-400">{row.updatedAt}<br/>{row.operator}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={()=>openEditCred(row)} className="px-2.5 py-1 text-xs text-blue-500 hover:bg-blue-50 rounded">编辑</button>
+                          <span className="text-gray-200">|</span>
+                          <button onClick={()=>deleteCred(row.id)} className="px-2.5 py-1 text-xs text-red-400 hover:bg-red-50 rounded">删除</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Modal：录入凭证值 */}
-      {credModal && (
-        <Modal title={`${credModal.valueId===null?'添加':'覆写'} · ${credModal.fieldLabel}`} onClose={()=>setCredModal(null)}
-          footer={<>
-            <button onClick={()=>setCredModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
-            <button onClick={submitCred} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认提交</button>
-          </>}>
-          {credModal.valueId!==null && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-700 mb-3 flex gap-2">
-              <span>⚠</span><span>覆写后原值将被替换，<strong>无法还原</strong>。</span>
-            </div>
-          )}
+      {/* Modal：添加字段 */}
+      {addFieldModal && (
+        <Modal title="添加字段" onClose={()=>setAddFieldModal(false)}
+          footer={<><button onClick={()=>setAddFieldModal(false)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={addField} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认添加</button></>}>
           <div className="space-y-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">凭证值</label>
-              <input type={credModal.sensitive?'password':'text'}
-                className={`h-10 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 ${credModal.sensitive?'font-mono tracking-widest':''}`}
-                placeholder={credModal.sensitive?'请输入密钥值...':'请输入值...'} value={inputVal} onChange={e=>setInputVal(e.target.value)} autoFocus/>
-              <p className="text-xs text-gray-400">{credModal.sensitive?'🔒 敏感字段，提交后以掩码展示。':'ℹ️ 非敏感字段，提交后明文展示。'}</p>
+              <label className="text-xs text-gray-500">字段名称 <span className="text-red-400">*</span></label>
+              <input className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400" placeholder="如：商户号、商户私钥"
+                value={newField.label} onChange={e=>setNewField(f=>({...f,label:e.target.value}))} autoFocus/>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">备注（可选）</label>
-              <input type="text" className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"
-                placeholder="如：生产环境、人民币账户..." value={inputRemark} onChange={e=>setInputRemark(e.target.value)}/>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Modal：字段配置管理 */}
-      {fieldConfigOpen && (
-        <Modal title={`字段配置 · ${channel.name}`} wide onClose={()=>setFieldConfigOpen(false)}>
-          <div className="mb-3 flex justify-end">
-            <button onClick={()=>{setEditField({key:'',label:'',sensitive:false,required:true,sort:fields.length+1,desc:''});setFieldModal('add');}}
-              className="flex items-center gap-1.5 px-3 h-8 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md">＋ 新增字段</button>
-          </div>
-          <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">字段标识</th>
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">展示名称</th>
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">敏感</th>
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">必填</th>
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">顺序</th>
-                <th className="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">说明</th>
-                <th className="px-3 py-2.5 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {fields.map(f=>(
-                <tr key={f.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2.5"><code className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{f.key}</code></td>
-                  <td className="px-3 py-2.5 text-gray-800">{f.label}</td>
-                  <td className="px-3 py-2.5">
-                    {f.sensitive ? <span className="text-xs text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">掩码</span>
-                                 : <span className="text-xs text-gray-400">明文</span>}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {f.required ? <span className="text-xs text-red-500">必填</span> : <span className="text-xs text-gray-400">选填</span>}
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-500 text-xs">{f.sort}</td>
-                  <td className="px-3 py-2.5 text-gray-400 text-xs">{f.desc||'—'}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={()=>{setEditField({...f});setFieldModal('edit');}} className="px-2 py-1 text-xs text-blue-500 hover:bg-blue-50 rounded">编辑</button>
-                      <span className="text-gray-200">|</span>
-                      <button onClick={()=>{setEditField(f);setFieldModal('delete');}} className="px-2 py-1 text-xs text-red-400 hover:bg-red-50 rounded">删除</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Modal>
-      )}
-
-      {/* Modal：新增/编辑字段定义 */}
-      {(fieldModal==='add'||fieldModal==='edit') && (
-        <Modal title={fieldModal==='add'?'新增字段':'编辑字段'} onClose={()=>setFieldModal(null)}
-          footer={<>
-            <button onClick={()=>setFieldModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
-            <button onClick={saveFieldDef} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认</button>
-          </>}>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">字段标识 <span className="text-red-400">*</span></label>
-                <input className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 font-mono"
-                  placeholder="如 merchant_no" value={editField?.key||''} onChange={e=>setEditField(f=>({...f,key:e.target.value}))}/>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">展示名称 <span className="text-red-400">*</span></label>
-                <input className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="如 商户号" value={editField?.label||''} onChange={e=>setEditField(f=>({...f,label:e.target.value}))}/>
-              </div>
+              <label className="text-xs text-gray-500">字段标识（选填，留空自动生成）</label>
+              <input className="h-9 border border-gray-200 rounded-md px-3 text-sm font-mono focus:outline-none focus:border-blue-400" placeholder="如：merchant_no"
+                value={newField.key} onChange={e=>setNewField(f=>({...f,key:e.target.value}))}/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-gray-500">是否敏感</label>
+                <label className="text-xs text-gray-500">是否脱敏</label>
                 <select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white"
-                  value={editField?.sensitive?'1':'0'} onChange={e=>setEditField(f=>({...f,sensitive:e.target.value==='1'}))}>
-                  <option value="1">掩码展示（敏感）</option><option value="0">明文展示（非敏感）</option>
+                  value={newField.sensitive?'1':'0'} onChange={e=>setNewField(f=>({...f,sensitive:e.target.value==='1'}))}>
+                  <option value="0">明文展示（不脱敏）</option>
+                  <option value="1">掩码展示（脱敏）</option>
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-500">是否必填</label>
                 <select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white"
-                  value={editField?.required?'1':'0'} onChange={e=>setEditField(f=>({...f,required:e.target.value==='1'}))}>
-                  <option value="1">必填</option><option value="0">选填</option>
+                  value={newField.required?'1':'0'} onChange={e=>setNewField(f=>({...f,required:e.target.value==='1'}))}>
+                  <option value="1">必填</option>
+                  <option value="0">选填</option>
                 </select>
               </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">显示顺序</label>
-              <input type="number" className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"
-                value={editField?.sort||''} onChange={e=>setEditField(f=>({...f,sort:Number(e.target.value)}))}/>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">字段说明</label>
-              <input className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"
-                placeholder="可选" value={editField?.desc||''} onChange={e=>setEditField(f=>({...f,desc:e.target.value}))}/>
             </div>
           </div>
         </Modal>
       )}
 
-      {/* Modal：删除字段确认 */}
-      {fieldModal==='delete' && (
-        <Modal title="删除字段" onClose={()=>setFieldModal(null)}
-          footer={<>
-            <button onClick={()=>setFieldModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">取消</button>
-            <button onClick={()=>{setFields(fs=>fs.filter(f=>f.id!==editField.id));setFieldModal(null);showToast('✓ 字段已删除','success');}} className="px-4 h-8 text-sm bg-red-500 hover:bg-red-600 text-white rounded-md">确认删除</button>
-          </>}>
-          <p className="text-sm text-gray-600">删除字段 <strong>「{editField?.label}」</strong>？该字段下所有已录入的凭证值也将一并删除。</p>
+      {/* Modal：录入/编辑凭证 */}
+      {credModal && (
+        <Modal title={credModal.mode==='add'?'新增凭证':'编辑凭证'} onClose={()=>setCredModal(null)}
+          footer={<><button onClick={()=>setCredModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={submitCred} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认提交</button></>}>
+          {credModal.mode==='edit' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-700 mb-3 flex gap-2">
+              <span>⚠</span><span>脱敏字段修改后将覆盖原值，<strong>无法还原</strong>。</span>
+            </div>
+          )}
+          <div className="space-y-3">
+            {fieldDefs.map(f=>(
+              <div key={f.key} className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">
+                  {f.label}
+                  {f.required && <span className="text-red-400 ml-0.5">*</span>}
+                  {f.sensitive && <span className="text-orange-500 ml-1.5 text-xs bg-orange-50 border border-orange-200 px-1.5 py-0 rounded">脱敏</span>}
+                </label>
+                <input
+                  type={f.sensitive?'password':'text'}
+                  className={`h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 ${f.sensitive?'font-mono tracking-widest':''}`}
+                  placeholder={f.sensitive?'请输入…（提交后不可查看）':'请输入…'}
+                  value={credForm[f.key]||''}
+                  onChange={e=>setCredForm(fm=>({...fm,[f.key]:e.target.value}))}
+                />
+              </div>
+            ))}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">备注（可选）</label>
+              <input className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400"
+                placeholder="如：生产环境、人民币账户…" value={credRemark} onChange={e=>setCredRemark(e.target.value)}/>
+            </div>
+          </div>
         </Modal>
       )}
     </main>
   );
 }
 
-// ━━━ App Root ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── App Root ──────────────────────────────────────────
 function App() {
-  const [activeKey, setActiveKey] = useState('channels');
-  const [detailRow, setDetailRow] = useState(null);
-  const [toast, setToast]         = useState({ msg:'', type:'' });
-  const showToast=(msg,type='default')=>{setToast({msg,type});setTimeout(()=>setToast({msg:'',type:''}),2200);};
+  const [activeKey, setActiveKey]   = useState('channels');
+  const [channels, setChannels]     = useState(INIT_CHANNELS);
+  const [currentChannel, setCurrentChannel] = useState(null);
+  const [toast, setToast]           = useState({ msg:'', type:'' });
+
+  const showToast = (msg, type='default') => { setToast({msg,type}); setTimeout(()=>setToast({msg:'',type:''}),2200); };
+
+  const handleSaveChannel = (updated) => {
+    setChannels(cs => cs.map(c => c.id===updated.id ? updated : c));
+    setCurrentChannel(updated);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar activeKey={activeKey} onSelect={k=>{setActiveKey(k);setDetailRow(null);}}/>
-      {detailRow
-        ? <CredDetailPage channel={detailRow} onBack={()=>setDetailRow(null)} showToast={showToast}/>
+      <Sidebar activeKey={activeKey} onSelect={k=>{setActiveKey(k);setCurrentChannel(null);}}/>
+      {currentChannel
+        ? <ChannelDetailPage channel={currentChannel} onSave={handleSaveChannel} onBack={()=>setCurrentChannel(null)} showToast={showToast}/>
         : activeKey==='channels'
-          ? <ChannelListPage onViewDetail={setDetailRow} showToast={showToast}/>
-          : <main className="flex-1 flex items-center justify-center"><div className="text-center text-gray-400"><div className="text-4xl mb-3">🚧</div><div className="text-sm">该模块开发中</div></div></main>
+          ? <ChannelListPage channels={channels} setChannels={setChannels} onEnter={c=>{setCurrentChannel(c);}} showToast={showToast}/>
+          : <main className="flex-1 flex items-center justify-center"><div className="text-center text-gray-400"><div className="text-4xl mb-2">🚧</div><div className="text-sm">该模块开发中</div></div></main>
       }
       <Toast msg={toast.msg} type={toast.type}/>
     </div>
@@ -700,6 +632,6 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-  </script>
+</script>
 </body>
 </html>

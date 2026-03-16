@@ -23,26 +23,24 @@ const MENU = [
 
 // ── 渠道列表 Mock ──────────────────────────────────────
 const INIT_CHANNELS = [
-  { id:1, name:'Lapay',         type:'API',  intStatus:'connected', onlineStatus:'online',  expiredAt:'2027-06-30', updatedAt:'2026-02-01', operator:'张三',
-    // 上层：字段配置 schema
+  { id:1, name:'Lapay',         type:'API',  intStatus:'connected', onlineStatus:'online',  docUrl:'https://docs.lapay.com/api', remark:'东南亚主力渠道', updatedAt:'2026-02-01', operator:'张三',
     fieldDefs:[
       { id:1, label:'商户号',   key:'merchant_no',          sensitive:false, required:true  },
       { id:2, label:'商户私钥', key:'merchant_private_key', sensitive:true,  required:true  },
       { id:3, label:'平台公钥', key:'platform_public_key',  sensitive:true,  required:true  },
     ],
-    // 下层：凭证明细 rows
     credRows:[
       { id:1, values:{ merchant_no:'LPY-8823-CNY', merchant_private_key:'', platform_public_key:'' }, remark:'人民币账户', updatedAt:'2026-02-01', operator:'张三' },
       { id:2, values:{ merchant_no:'LPY-9944-USD', merchant_private_key:'', platform_public_key:'' }, remark:'美元账户',   updatedAt:'2026-03-01', operator:'张三' },
     ]
   },
-  { id:2, name:'PayPal',        type:'API',  intStatus:'connected', onlineStatus:'online',  expiredAt:'2027-03-15', updatedAt:'2026-01-20', operator:'李四', fieldDefs:[], credRows:[] },
-  { id:3, name:'Stripe',        type:'API',  intStatus:'pending',   onlineStatus:'online',  expiredAt:'2026-12-31', updatedAt:'2026-01-15', operator:'张三', fieldDefs:[], credRows:[] },
-  { id:4, name:'SWIFT 银行转账', type:'SFTP', intStatus:'connected', onlineStatus:'offline', expiredAt:'2025-12-10', updatedAt:'2025-12-10', operator:'王五', fieldDefs:[], credRows:[] },
-  { id:5, name:'Alipay HK',     type:'API',  intStatus:'unknown',   onlineStatus:'online',  expiredAt:'2026-08-01', updatedAt:'2026-01-08', operator:'李四', fieldDefs:[], credRows:[] },
-  { id:6, name:'GrabPay',       type:'API',  intStatus:'pending',   onlineStatus:'unknown', expiredAt:'2027-01-01', updatedAt:'2026-03-01', operator:'张三', fieldDefs:[], credRows:[] },
-  { id:7, name:'Payermax',      type:'API',  intStatus:'connected', onlineStatus:'online',  expiredAt:'2027-09-30', updatedAt:'2026-02-18', operator:'王五', fieldDefs:[], credRows:[] },
-  { id:8, name:'Unipin',        type:'SFTP', intStatus:'pending',   onlineStatus:'unknown', expiredAt:'-',          updatedAt:'2026-03-10', operator:'李四', fieldDefs:[], credRows:[] },
+  { id:2, name:'PayPal',        type:'API',  intStatus:'connected', onlineStatus:'online',  docUrl:'https://developer.paypal.com', remark:'', updatedAt:'2026-01-20', operator:'李四', fieldDefs:[], credRows:[] },
+  { id:3, name:'Stripe',        type:'API',  intStatus:'pending',   onlineStatus:'online',  docUrl:'https://stripe.com/docs',      remark:'', updatedAt:'2026-01-15', operator:'张三', fieldDefs:[], credRows:[] },
+  { id:4, name:'SWIFT 银行转账', type:'SFTP', intStatus:'connected', onlineStatus:'offline', docUrl:'',                             remark:'仅限欧元结算', updatedAt:'2025-12-10', operator:'王五', fieldDefs:[], credRows:[] },
+  { id:5, name:'Alipay HK',     type:'API',  intStatus:'unknown',   onlineStatus:'online',  docUrl:'',                             remark:'', updatedAt:'2026-01-08', operator:'李四', fieldDefs:[], credRows:[] },
+  { id:6, name:'GrabPay',       type:'API',  intStatus:'pending',   onlineStatus:'unknown', docUrl:'',                             remark:'', updatedAt:'2026-03-01', operator:'张三', fieldDefs:[], credRows:[] },
+  { id:7, name:'Payermax',      type:'API',  intStatus:'connected', onlineStatus:'online',  docUrl:'https://docs.payermax.com',    remark:'', updatedAt:'2026-02-18', operator:'王五', fieldDefs:[], credRows:[] },
+  { id:8, name:'Unipin',        type:'SFTP', intStatus:'pending',   onlineStatus:'unknown', docUrl:'',                             remark:'', updatedAt:'2026-03-10', operator:'李四', fieldDefs:[], credRows:[] },
 ];
 
 const INT_STATUS = {
@@ -57,7 +55,6 @@ const ONLINE_STATUS = {
 };
 const PAGE_SIZE = 6;
 
-// ── 通用组件 ──────────────────────────────────────────
 function Badge({ map, status }) {
   const cfg = map[status] || Object.values(map).at(-1);
   return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}><span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}`}></span>{cfg.label}</span>;
@@ -112,7 +109,6 @@ function Sidebar({ activeKey, onSelect }) {
   );
 }
 
-// ── 渠道列表页 ────────────────────────────────────────
 function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
   const [search, setSearch]   = useState('');
   const [fInt, setFInt]       = useState('');
@@ -137,10 +133,10 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
   };
 
   const stats = [
-    {label:'渠道总数',  value:channels.length,                                               color:'text-gray-900',   sub:'第一阶段海外支付'},
-    {label:'已接入',    value:channels.filter(c=>c.intStatus==='connected').length,          color:'text-green-600',  sub:''},
-    {label:'字段未配置',value:channels.filter(c=>c.fieldDefs.length===0).length,            color:'text-yellow-600', sub:'尚未配置字段'},
-    {label:'即将到期',  value:channels.filter(c=>c.expiredAt!=='-'&&new Date(c.expiredAt)<new Date(Date.now()+30*86400000)).length, color:'text-red-500', sub:'30天内'},
+    {label:'渠道总数',  value:channels.length,                                    color:'text-gray-900',   sub:'第一阶段海外支付'},
+    {label:'已接入',    value:channels.filter(c=>c.intStatus==='connected').length,color:'text-green-600',  sub:''},
+    {label:'字段未配置',value:channels.filter(c=>c.fieldDefs.length===0).length,  color:'text-yellow-600', sub:'尚未配置字段'},
+    {label:'已录入凭证',value:channels.filter(c=>c.credRows.length>0).length,     color:'text-blue-500',   sub:'已有凭证数据'},
   ];
 
   return (
@@ -150,8 +146,6 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
         <p className="text-xs text-gray-400 mt-0.5">点击渠道名称进入字段配置与凭证录入</p>
       </div>
       <div className="flex-1 overflow-auto px-6 py-4">
-
-        {/* 统计卡 */}
         <div className="grid grid-cols-4 gap-4 mb-4">
           {stats.map(s=>(
             <div key={s.label} className="bg-white border border-gray-200 rounded-lg px-4 py-3">
@@ -161,8 +155,6 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
             </div>
           ))}
         </div>
-
-        {/* 筛选 */}
         <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-3 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 h-8 focus-within:border-blue-400 focus-within:bg-white">
             <span className="text-gray-400 text-sm">🔍</span>
@@ -184,20 +176,16 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
           {(search||fInt||fOnline) && <button onClick={()=>{setSearch('');setFInt('');setFOnline('');setPage(1);}} className="text-xs text-blue-500">重置</button>}
           <span className="ml-auto text-xs text-gray-400">共 {total} 条</span>
         </div>
-
-        {/* 操作 */}
         <div className="flex gap-2 mb-3">
-          <button onClick={()=>{setEditRow({name:'',type:'API',intStatus:'pending',onlineStatus:'unknown',expiredAt:''});setModal('add');}}
+          <button onClick={()=>{setEditRow({name:'',type:'API',intStatus:'pending',onlineStatus:'unknown',docUrl:'',remark:''});setModal('add');}}
             className="px-3 h-8 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md">＋ 新增渠道</button>
           <button onClick={()=>showToast('已导出')} className="px-3 h-8 bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-sm text-gray-600 rounded-md">↓ 导出</button>
         </div>
-
-        {/* 表格 */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                {['渠道名称','接入类型','接入状态','上线状态','字段数','凭证条数','截止日期','操作'].map(h=>(
+                {['渠道名称','接入类型','接入状态','上线状态','字段数','凭证条数','操作'].map(h=>(
                   <th key={h} className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide ${h==='操作'?'text-right':'text-left'}`}>{h}</th>
                 ))}
               </tr>
@@ -205,7 +193,10 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
             <tbody className="divide-y divide-gray-100">
               {paginated.map(row=>(
                 <tr key={row.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={()=>onEnter(row)}>
-                  <td className="px-4 py-3 font-medium text-blue-600 hover:underline">{row.name}</td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-blue-600 hover:underline">{row.name}</div>
+                    {row.remark && <div className="text-xs text-gray-400 mt-0.5">{row.remark}</div>}
+                  </td>
                   <td className="px-4 py-3"><span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">{row.type}</span></td>
                   <td className="px-4 py-3"><Badge map={INT_STATUS} status={row.intStatus}/></td>
                   <td className="px-4 py-3"><Badge map={ONLINE_STATUS} status={row.onlineStatus}/></td>
@@ -218,9 +209,6 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
                     {row.credRows.length===0
                       ? <span className="text-xs text-gray-300">—</span>
                       : <span className="text-xs font-medium text-gray-700">{row.credRows.length} 条</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(() => { const exp = row.expiredAt!=='-' && new Date(row.expiredAt)<new Date(Date.now()+30*86400000); return <span className={`text-xs ${exp?'text-red-500 font-medium':'text-gray-400'}`}>{exp?'⚠ ':''}{row.expiredAt}</span>; })()}
                   </td>
                   <td className="px-4 py-3 text-right" onClick={e=>e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
@@ -236,8 +224,6 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
             </tbody>
           </table>
         </div>
-
-        {/* 分页 */}
         <div className="flex items-center justify-between mt-3 px-1">
           <span className="text-xs text-gray-400">共 {total} 条</span>
           <div className="flex items-center gap-1">
@@ -253,13 +239,11 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
           </div>
         </div>
       </div>
-
-      {/* 新增/编辑渠道 */}
       {(modal==='add'||modal==='edit') && (
         <Modal title={modal==='add'?'新增渠道':'编辑渠道'} onClose={()=>setModal(null)}
           footer={<><button onClick={()=>setModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={confirmSave} className="px-4 h-8 text-sm bg-blue-500 text-white rounded-md">确认</button></>}>
           <div className="space-y-3">
-            {[{k:'name',label:'渠道名称',type:'text'},{k:'type',label:'接入类型',type:'text'},{k:'expiredAt',label:'截止日期',type:'date'}].map(f=>(
+            {[{k:'name',label:'渠道名称',type:'text'},{k:'type',label:'接入类型',type:'text'},{k:'docUrl',label:'文档地址',type:'text'},{k:'remark',label:'备注',type:'text'}].map(f=>(
               <div key={f.k} className="flex flex-col gap-1"><label className="text-xs text-gray-500">{f.label}</label>
                 <input type={f.type} className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400" value={editRow?.[f.k]||''} onChange={e=>setEditRow(r=>({...r,[f.k]:e.target.value}))}/>
               </div>
@@ -284,91 +268,46 @@ function ChannelListPage({ channels, setChannels, onEnter, showToast }) {
   );
 }
 
-// ── 渠道详情页：字段配置 + 凭证明细 ──────────────────
 function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
-  // 字段定义 (schema)
   const [fieldDefs, setFieldDefs] = useState(channel.fieldDefs);
-  // 凭证明细 (rows)
   const [credRows, setCredRows]   = useState(channel.credRows);
-
-  // 字段配置相关 state
   const [addFieldModal, setAddFieldModal] = useState(false);
   const [newField, setNewField]           = useState({ label:'', key:'', sensitive:false, required:true });
-
-  // 凭证录入相关 state
-  const [credModal, setCredModal] = useState(null); // null | { mode:'add'|'edit', row }
-  const [credForm, setCredForm]   = useState({});   // { [key]: value }
+  const [credModal, setCredModal] = useState(null);
+  const [credForm, setCredForm]   = useState({});
   const [credRemark, setCredRemark] = useState('');
 
-  // 保存到父组件
   const persist = (defs, rows) => {
     onSave({ ...channel, fieldDefs: defs, credRows: rows });
     showToast('✓ 已保存','success');
   };
 
-  // ── 字段配置操作 ──
   const addField = () => {
     if (!newField.label.trim()) { showToast('请填写字段名称'); return; }
     const key = newField.key.trim() || newField.label.trim().toLowerCase().replace(/\s+/g,'_');
     if (fieldDefs.find(f=>f.key===key)) { showToast('字段标识已存在'); return; }
     const id = fieldDefs.length ? Math.max(...fieldDefs.map(f=>f.id))+1 : 1;
     const updated = [...fieldDefs, { id, ...newField, key }];
-    setFieldDefs(updated);
-    setAddFieldModal(false);
-    setNewField({ label:'', key:'', sensitive:false, required:true });
+    setFieldDefs(updated); setAddFieldModal(false); setNewField({ label:'', key:'', sensitive:false, required:true });
     persist(updated, credRows);
   };
-  const removeField = (fid) => {
-    const updated = fieldDefs.filter(f=>f.id!==fid);
-    setFieldDefs(updated);
-    persist(updated, credRows);
-  };
-  const toggleSensitive = (fid) => {
-    const updated = fieldDefs.map(f=>f.id===fid?{...f,sensitive:!f.sensitive}:f);
-    setFieldDefs(updated);
-    persist(updated, credRows);
-  };
-  const toggleRequired = (fid) => {
-    const updated = fieldDefs.map(f=>f.id===fid?{...f,required:!f.required}:f);
-    setFieldDefs(updated);
-    persist(updated, credRows);
-  };
+  const removeField = (fid) => { const u=fieldDefs.filter(f=>f.id!==fid); setFieldDefs(u); persist(u, credRows); };
+  const toggleSensitive = (fid) => { const u=fieldDefs.map(f=>f.id===fid?{...f,sensitive:!f.sensitive}:f); setFieldDefs(u); persist(u, credRows); };
+  const toggleRequired = (fid) => { const u=fieldDefs.map(f=>f.id===fid?{...f,required:!f.required}:f); setFieldDefs(u); persist(u, credRows); };
 
-  // ── 凭证明细操作 ──
-  const openAddCred = () => {
-    if (fieldDefs.length===0) { showToast('请先配置字段'); return; }
-    setCredForm({});
-    setCredRemark('');
-    setCredModal({ mode:'add', row:null });
-  };
-  const openEditCred = (row) => {
-    setCredForm({ ...row.values });
-    setCredRemark(row.remark||'');
-    setCredModal({ mode:'edit', row });
-  };
+  const openAddCred = () => { if (fieldDefs.length===0) { showToast('请先配置字段'); return; } setCredForm({}); setCredRemark(''); setCredModal({ mode:'add', row:null }); };
+  const openEditCred = (row) => { setCredForm({ ...row.values }); setCredRemark(row.remark||''); setCredModal({ mode:'edit', row }); };
   const submitCred = () => {
     const now = new Date().toISOString().slice(0,10);
     let updated;
-    if (credModal.mode==='add') {
-      const id = credRows.length ? Math.max(...credRows.map(r=>r.id))+1 : 1;
-      updated = [...credRows, { id, values:{ ...credForm }, remark:credRemark, updatedAt:now, operator:'张三' }];
-    } else {
-      updated = credRows.map(r=>r.id===credModal.row.id ? { ...r, values:{ ...credForm }, remark:credRemark, updatedAt:now } : r);
-    }
-    setCredRows(updated);
-    setCredModal(null);
-    persist(fieldDefs, updated);
+    if (credModal.mode==='add') { const id=credRows.length?Math.max(...credRows.map(r=>r.id))+1:1; updated=[...credRows,{id,values:{...credForm},remark:credRemark,updatedAt:now,operator:'张三'}]; }
+    else { updated=credRows.map(r=>r.id===credModal.row.id?{...r,values:{...credForm},remark:credRemark,updatedAt:now}:r); }
+    setCredRows(updated); setCredModal(null); persist(fieldDefs, updated);
   };
-  const deleteCred = (rid) => {
-    const updated = credRows.filter(r=>r.id!==rid);
-    setCredRows(updated);
-    persist(fieldDefs, updated);
-    showToast('✓ 已删除','success');
-  };
+  const deleteCred = (rid) => { const u=credRows.filter(r=>r.id!==rid); setCredRows(u); persist(fieldDefs,u); showToast('✓ 已删除','success'); };
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
-      {/* 页头 */}
       <div className="px-6 py-4 bg-white border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
         <button onClick={onBack} className="text-gray-400 hover:text-blue-500 text-lg leading-none transition-colors">←</button>
         <div>
@@ -379,11 +318,14 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
           <Badge map={INT_STATUS} status={channel.intStatus}/>
           <Badge map={ONLINE_STATUS} status={channel.onlineStatus}/>
         </div>
+        {channel.docUrl && (
+          <a href={channel.docUrl} target="_blank" rel="noreferrer"
+            className="ml-auto flex items-center gap-1 text-xs text-blue-500 hover:underline">
+            📄 接入文档
+          </a>
+        )}
       </div>
-
       <div className="flex-1 overflow-auto px-6 py-4 space-y-5">
-
-        {/* ══ 区域A：字段配置 ══════════════════════════════ */}
         <div className="bg-white border border-gray-200 rounded-lg">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -392,11 +334,8 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
               <span className="text-xs text-gray-400">配置该渠道需要录入哪些字段，以及是否脱敏</span>
             </div>
             <button onClick={()=>{setNewField({label:'',key:'',sensitive:false,required:true});setAddFieldModal(true);}}
-              className="flex items-center gap-1.5 px-3 h-7 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors">
-              ＋ 添加字段
-            </button>
+              className="flex items-center gap-1.5 px-3 h-7 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors">＋ 添加字段</button>
           </div>
-
           {fieldDefs.length===0 ? (
             <div className="px-5 py-8 text-center">
               <div className="text-3xl mb-2">📋</div>
@@ -406,42 +345,28 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
             </div>
           ) : (
             <div className="px-5 py-3">
-              {/* 字段表头 */}
               <div className="grid grid-cols-12 gap-3 px-3 py-1.5 text-xs text-gray-400 font-medium uppercase tracking-wide border-b border-gray-100 mb-1">
-                <div className="col-span-3">字段名称</div>
-                <div className="col-span-3">字段标识</div>
-                <div className="col-span-2 text-center">是否脱敏</div>
-                <div className="col-span-2 text-center">是否必填</div>
+                <div className="col-span-3">字段名称</div><div className="col-span-3">字段标识</div>
+                <div className="col-span-2 text-center">是否脱敏</div><div className="col-span-2 text-center">是否必填</div>
                 <div className="col-span-2 text-right">操作</div>
               </div>
-              {/* 字段行 */}
               <div className="space-y-1">
                 {fieldDefs.map(f=>(
                   <div key={f.id} className="grid grid-cols-12 gap-3 items-center px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group">
-                    <div className="col-span-3">
-                      <span className="text-sm font-medium text-gray-800">{f.label}</span>
-                      {f.required && <span className="text-red-400 text-xs ml-1">*</span>}
-                    </div>
-                    <div className="col-span-3">
-                      <code className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{f.key}</code>
-                    </div>
-                    {/* 脱敏 toggle */}
+                    <div className="col-span-3"><span className="text-sm font-medium text-gray-800">{f.label}</span>{f.required&&<span className="text-red-400 text-xs ml-1">*</span>}</div>
+                    <div className="col-span-3"><code className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{f.key}</code></div>
                     <div className="col-span-2 flex justify-center">
-                      <button onClick={()=>toggleSensitive(f.id)}
-                        className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none ${f.sensitive?'bg-orange-400':'bg-gray-200'}`}>
+                      <button onClick={()=>toggleSensitive(f.id)} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none ${f.sensitive?'bg-orange-400':'bg-gray-200'}`}>
                         <span className={`inline-block w-3.5 h-3.5 transform rounded-full bg-white shadow transition-transform ${f.sensitive?'translate-x-4':'translate-x-0.5'}`}></span>
                       </button>
                       <span className={`ml-1.5 text-xs ${f.sensitive?'text-orange-500':'text-gray-400'}`}>{f.sensitive?'掩码':'明文'}</span>
                     </div>
-                    {/* 必填 toggle */}
                     <div className="col-span-2 flex justify-center">
-                      <button onClick={()=>toggleRequired(f.id)}
-                        className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none ${f.required?'bg-blue-500':'bg-gray-200'}`}>
+                      <button onClick={()=>toggleRequired(f.id)} className={`relative inline-flex items-center h-5 rounded-full w-9 transition-colors focus:outline-none ${f.required?'bg-blue-500':'bg-gray-200'}`}>
                         <span className={`inline-block w-3.5 h-3.5 transform rounded-full bg-white shadow transition-transform ${f.required?'translate-x-4':'translate-x-0.5'}`}></span>
                       </button>
                       <span className={`ml-1.5 text-xs ${f.required?'text-blue-500':'text-gray-400'}`}>{f.required?'必填':'选填'}</span>
                     </div>
-                    {/* 删除 */}
                     <div className="col-span-2 flex justify-end">
                       <button onClick={()=>removeField(f.id)} className="px-2 py-1 text-xs text-red-400 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity">删除</button>
                     </div>
@@ -451,8 +376,6 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
             </div>
           )}
         </div>
-
-        {/* ══ 区域B：凭证明细 ══════════════════════════════ */}
         <div className="bg-white border border-gray-200 rounded-lg">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -466,7 +389,6 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
               ＋ 新增一条
             </button>
           </div>
-
           {fieldDefs.length===0 ? (
             <div className="px-5 py-6 text-center text-xs text-gray-300">请先完成字段配置，再录入凭证</div>
           ) : credRows.length===0 ? (
@@ -483,8 +405,7 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">#</th>
                     {fieldDefs.map(f=>(
                       <th key={f.key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        <span>{f.label}</span>
-                        {f.sensitive && <span className="ml-1 text-orange-400 text-xs">🔒</span>}
+                        <span>{f.label}</span>{f.sensitive&&<span className="ml-1 text-orange-400 text-xs">🔒</span>}
                       </th>
                     ))}
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">备注</th>
@@ -500,13 +421,11 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
                         <td key={f.key} className="px-4 py-3">
                           {f.sensitive
                             ? <span className="font-mono text-sm text-gray-400 tracking-widest">••••••••</span>
-                            : <span className="text-sm text-gray-800">{row.values[f.key] || <span className="text-gray-300 italic text-xs">未填写</span>}</span>
+                            : <span className="text-sm text-gray-800">{row.values[f.key]||<span className="text-gray-300 italic text-xs">未填写</span>}</span>
                           }
                         </td>
                       ))}
-                      <td className="px-4 py-3">
-                        {row.remark ? <span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded">{row.remark}</span> : <span className="text-xs text-gray-300">—</span>}
-                      </td>
+                      <td className="px-4 py-3">{row.remark?<span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded">{row.remark}</span>:<span className="text-xs text-gray-300">—</span>}</td>
                       <td className="px-4 py-3 text-xs text-gray-400">{row.updatedAt}<br/>{row.operator}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
@@ -523,8 +442,6 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
           )}
         </div>
       </div>
-
-      {/* Modal：添加字段 */}
       {addFieldModal && (
         <Modal title="添加字段" onClose={()=>setAddFieldModal(false)}
           footer={<><button onClick={()=>setAddFieldModal(false)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={addField} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认添加</button></>}>
@@ -544,24 +461,20 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
                 <label className="text-xs text-gray-500">是否脱敏</label>
                 <select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white"
                   value={newField.sensitive?'1':'0'} onChange={e=>setNewField(f=>({...f,sensitive:e.target.value==='1'}))}>
-                  <option value="0">明文展示（不脱敏）</option>
-                  <option value="1">掩码展示（脱敏）</option>
+                  <option value="0">明文展示（不脱敏）</option><option value="1">掩码展示（脱敏）</option>
                 </select>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-500">是否必填</label>
                 <select className="h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 bg-white"
                   value={newField.required?'1':'0'} onChange={e=>setNewField(f=>({...f,required:e.target.value==='1'}))}>
-                  <option value="1">必填</option>
-                  <option value="0">选填</option>
+                  <option value="1">必填</option><option value="0">选填</option>
                 </select>
               </div>
             </div>
           </div>
         </Modal>
       )}
-
-      {/* Modal：录入/编辑凭证 */}
       {credModal && (
         <Modal title={credModal.mode==='add'?'新增凭证':'编辑凭证'} onClose={()=>setCredModal(null)}
           footer={<><button onClick={()=>setCredModal(null)} className="px-4 h-8 text-sm border border-gray-200 rounded-md text-gray-600">取消</button><button onClick={submitCred} className="px-4 h-8 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-md">确认提交</button></>}>
@@ -574,17 +487,13 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
             {fieldDefs.map(f=>(
               <div key={f.key} className="flex flex-col gap-1">
                 <label className="text-xs text-gray-500">
-                  {f.label}
-                  {f.required && <span className="text-red-400 ml-0.5">*</span>}
-                  {f.sensitive && <span className="text-orange-500 ml-1.5 text-xs bg-orange-50 border border-orange-200 px-1.5 py-0 rounded">脱敏</span>}
+                  {f.label}{f.required&&<span className="text-red-400 ml-0.5">*</span>}
+                  {f.sensitive&&<span className="text-orange-500 ml-1.5 text-xs bg-orange-50 border border-orange-200 px-1.5 py-0 rounded">脱敏</span>}
                 </label>
-                <input
-                  type={f.sensitive?'password':'text'}
+                <input type={f.sensitive?'password':'text'}
                   className={`h-9 border border-gray-200 rounded-md px-3 text-sm focus:outline-none focus:border-blue-400 ${f.sensitive?'font-mono tracking-widest':''}`}
                   placeholder={f.sensitive?'请输入…（提交后不可查看）':'请输入…'}
-                  value={credForm[f.key]||''}
-                  onChange={e=>setCredForm(fm=>({...fm,[f.key]:e.target.value}))}
-                />
+                  value={credForm[f.key]||''} onChange={e=>setCredForm(fm=>({...fm,[f.key]:e.target.value}))}/>
               </div>
             ))}
             <div className="flex flex-col gap-1">
@@ -599,20 +508,13 @@ function ChannelDetailPage({ channel, onSave, onBack, showToast }) {
   );
 }
 
-// ── App Root ──────────────────────────────────────────
 function App() {
   const [activeKey, setActiveKey]   = useState('channels');
   const [channels, setChannels]     = useState(INIT_CHANNELS);
   const [currentChannel, setCurrentChannel] = useState(null);
   const [toast, setToast]           = useState({ msg:'', type:'' });
-
   const showToast = (msg, type='default') => { setToast({msg,type}); setTimeout(()=>setToast({msg:'',type:''}),2200); };
-
-  const handleSaveChannel = (updated) => {
-    setChannels(cs => cs.map(c => c.id===updated.id ? updated : c));
-    setCurrentChannel(updated);
-  };
-
+  const handleSaveChannel = (updated) => { setChannels(cs=>cs.map(c=>c.id===updated.id?updated:c)); setCurrentChannel(updated); };
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar activeKey={activeKey} onSelect={k=>{setActiveKey(k);setCurrentChannel(null);}}/>
